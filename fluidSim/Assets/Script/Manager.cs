@@ -1,165 +1,207 @@
-using JetBrains.Annotations;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting.Antlr3.Runtime;
+using Unity.Mathematics;
+using UnityEditor;
 using UnityEngine;
 
 public class Manager : MonoBehaviour
 {
+    // https://lucasschuermann.com/writing/implementing-sph-in-2d
+
     [Header("Simulation Values")]
-    public LayerMask searchLayer;
-    public float neighbourSearchRadius = 2f; // Example: 2f (can be adjusted based on particle density)
-    public float particleMass = 0.1f; // Example: 0.1f (mass of each particle)
-    public float smoothingLength = 1.5f; // Example: 1.5f (smoothing length)
-    public float gasConstant = 100f; // Example: 100f (stiffness of the fluid)
-    public float restDensity = 1.0f; // Example: 1.0f (rest density of the fluid)
-    public float velocityDifference = 0.5f; // Example: 0.5f (initial velocity difference)
-    public float viscosityCoefficient = 15f; // Example: 15f (viscosity coefficient)
+    public Vector2 gravity = new(0f, -10f);
+    public float restDensity = 300f;
+    public float gasConstant = 2000f;
+    public float kernalRadius = 16f;
+    private float squareRadius
+    {
+        get { return kernalRadius * kernalRadius; }
+    }
+    public float mass = 2.5f;
+    public float viscosityConst = 200f;
+    public float timeStep = 0.001f;
 
-    [Header("General")]
+    private float epsilon
+    {
+        get { return kernalRadius; }
+    }
+    public float boundaryDamping = -0.5f;
+
+    [Header("Interaction")]
+    public float interactionInputStrength;
+    public float interactionRadius;
+
+    // smoothing kernels defined in Müller and their gradients
+    // adapted to 2D per "SPH Based Shallow Water Simulation" by Solenthaler et al.
+    public float POLY6
+    {
+        get { return 4f / (Mathf.PI * Mathf.Pow(kernalRadius, 8f)); }
+    } 
+    public float SPIKYGRAD
+    {
+        get { return -10f / (Mathf.PI * Mathf.Pow(kernalRadius, 5f)); }
+    } 
+    public float VISCLAP
+    {
+        get { return 40f / (Mathf.PI * Mathf.Pow(kernalRadius, 5f)); }
+    } 
+
+
+    [Header("Interaction")]
+    public int maxParticles = 2500;
+    public int damParticles = 500;
+    public int blockParticles = 250;
+
+    [Header("Spawning")]
+    public Vector2 view;
     public List<FluidParticle> particles = new();
-    public float timeStep = 1f;
+    public GameObject baseParticle;
 
-    [Header("Initilisation")]
-    public GameObject particleObject;
-    public Vector3 spawnPos;
-    public int totalStartingParticles;
-    public float spawnTime = 0.1f;
-
-    // Private Variables
-    private float _nextUpdate;
 
     public void Start()
     {
-        Physics2D.IgnoreLayerCollision(6, 6, true);
-        StartCoroutine(InitaliseParticles(totalStartingParticles));
-        _nextUpdate = 0;
+        spawnParticles();
+    }
+
+    public void spawnParticles()
+    {
+        for (float y = epsilon; y < view.y - epsilon * 2f; y += kernalRadius)
+        {
+            for (float x = view.x / 4; x <= view.x / 2; x += kernalRadius)
+            {
+                if (particles.Count < damParticles)
+                {
+                    float jitter = UnityEngine.Random.value / 1;
+                    FluidParticle particle = Instantiate(baseParticle, new Vector2(x + jitter, y), Quaternion.identity).GetComponent<FluidParticle>();
+                    particle.Init(new Vector2(x + jitter, y));
+                    particles.Add(particle);
+                }
+                else
+                    return;
+            }
+        }
+    }
+
+    public void OnDrawGizmos()
+    {
+        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(view.x, 0, 0));
+        Gizmos.DrawLine(new Vector3(0, view.y, 0), new Vector3(view.x, view.y, 0));
+        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
+        Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
     }
 
     public void Update()
     {
-        if (Time.time > _nextUpdate)
+        ComputeDensityPressure();
+        ComputeForces();
+        Integrate();
+
+        foreach (FluidParticle particle in particles)
         {
-            _nextUpdate = Time.time + timeStep;
-            UpdateParticles();
+            particle.transform.position = particle.pos;
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            foreach (FluidParticle particle in particles)
+            {
+                Destroy(particle.gameObject);
+            }
+            particles.Clear();
+            spawnParticles();
         }
     }
 
-    public IEnumerator InitaliseParticles(int count)
-    {
-        // spawn particles
-        for (int i = 0; i < count; i++)
-        {
-            particles.Add(Instantiate(particleObject, spawnPos, 
-                Quaternion.identity).GetComponent<FluidParticle>());
-            yield return new WaitForSeconds(spawnTime);
-        }
-    }
-
-    public void UpdateParticles()
+    public void ComputeDensityPressure()
     {
         foreach (FluidParticle particle in particles)
         {
-            particle.FindNeighbors(neighbourSearchRadius, searchLayer);
-            CalculateDensity(particle);
-            CalculatePressure(particle);
+            particle.density = 0f;
+            foreach (FluidParticle particle2 in particles)
+            {
+                Vector2 dir = particle2.pos - particle.pos;
+                float dist = dir.sqrMagnitude;
+                if (dist < squareRadius)
+                    particle.density += mass * POLY6 * Mathf.Pow(squareRadius - dist, 3f);
+            }
+            particle.pressure = gasConstant * (particle.density - restDensity);
         }
+    }
+
+    public void ComputeForces()
+    {
         foreach (FluidParticle particle in particles)
         {
-            Vector2 pressureForce = CaluclatePressureForce(particle);
-            Vector2 viscosityForce = CalculateViscosityForce(particle);
-
-            particle.rb.velocity += pressureForce + viscosityForce;
-        }
-    }
-
-    public void CalculateDensity(FluidParticle particle)
-    {
-        float density = 0;
-        foreach (FluidParticle neighbour in particle.GetNeighbours())
-        {
-            var dist = Vector2.Distance(particle.transform.position, neighbour.transform.position);
-            density += particleMass * Kernel(dist, smoothingLength);
-        }
-        particle.density = density;
-    }
-
-    public void CalculatePressure(FluidParticle particle)
-    {
-        particle.presure = gasConstant * (particle.density - restDensity);
-    }
-
-    public Vector2 CaluclatePressureForce(FluidParticle particle)
-    {
-        Vector2 pressureForce = Vector2.zero;
-        foreach (FluidParticle neighbour in particle.GetNeighbours())
-        {
-            Vector2 dir = neighbour.transform.position - particle.transform.position;
-            float distSquared = Vector2.SqrMagnitude(dir); // Calculate squared distance to avoid square root
-            float dist = Mathf.Sqrt(distSquared); // Calculate distance
-            if (dist > 0) // Ensure distance is non-zero to avoid division by zero
+            Vector2 forcePressure = Vector2.zero;
+            Vector2 forceViscosity = Vector2.zero;
+            foreach (FluidParticle particle2 in particles)
             {
-                Vector2 normalizedDir = dir / dist; // Normalize direction
-                float pressureContribution = -particleMass * (particle.presure + neighbour.presure) /
-                                             (2 * neighbour.density);
-                Vector2 gradient = KernelGradient(dist, smoothingLength, normalizedDir); // Calculate gradient
-                pressureForce += gradient * pressureContribution; // Accumulate force
+                if (particle == particle2)
+                    continue;
+
+                Vector2 dir = particle2.pos - particle.pos;
+                float dirMag = dir.magnitude;
+
+                if (dirMag < kernalRadius)
+                {
+                    forcePressure += -dir.normalized * mass * (particle.pressure + particle2.pressure) / (2 * particle2.density) *
+                        SPIKYGRAD * Mathf.Pow(kernalRadius - dirMag, 3);
+                    forceViscosity += viscosityConst * mass * (particle2.velocity - particle.velocity) / particle2.density *
+                        VISCLAP * (kernalRadius - dirMag);
+                }
+            }
+            Vector2 forceGravity = gravity * mass / particle.density;
+
+            if (Input.GetMouseButton(0))
+            {
+                Vector2 inputPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                float sqrDst = Vector2.Dot(inputPoint, particle.pos);
+                if (sqrDst < interactionRadius * interactionRadius)
+                {
+                    float dst = Mathf.Sqrt(sqrDst);
+                    float edgeT = (dst / kernalRadius);
+                    float centreT = 1 - edgeT;
+                    Vector2 dirToCentre = inputPoint / dst;
+
+                    float gravityWeight = 1 - (centreT * Mathf.Clamp01(interactionInputStrength / 10));
+                    Vector2 accel = gravity * gravityWeight + dirToCentre * centreT * interactionInputStrength;
+                    accel -= particle.velocity * centreT;
+                    forceGravity = accel;
+                }
+            }
+
+            particle.force = forcePressure + forceViscosity + forceGravity;
+        }
+    }
+
+    public void Integrate()
+    {
+        foreach (FluidParticle particle in particles)
+        {
+            particle.velocity += timeStep * particle.force / particle.density;
+            particle.pos += timeStep * particle.velocity;
+
+            if (particle.pos.x - epsilon < 0f)
+            {
+                particle.velocity.x *= boundaryDamping;
+                particle.pos.x = epsilon;
+            }
+            if (particle.pos.x + epsilon > view.x)
+            {
+                particle.velocity.x *= boundaryDamping;
+                particle.pos.x = view.x - epsilon;
+            }
+
+            if (particle.pos.y - epsilon < 0f)
+            {
+                particle.velocity.y *= boundaryDamping;
+                particle.pos.y = epsilon;
+            }
+            if (particle.pos.y + epsilon > view.y)
+            {
+                particle.velocity.y *= boundaryDamping;
+                particle.pos.y = view.y - epsilon;
             }
         }
-        return pressureForce;
-    }
-
-    public Vector2 CalculateViscosityForce(FluidParticle particle)
-    {
-        Vector2 viscosityForce = Vector2.zero;
-        foreach (FluidParticle neighbour in particle.GetNeighbours())
-        {
-            Vector2 velocityDifference = neighbour.velocity - particle.velocity;
-            Vector2 dir = neighbour.transform.position - particle.transform.position;
-            float distSquared = Vector2.SqrMagnitude(dir); // Calculate squared distance to avoid square root
-            float dist = Mathf.Sqrt(distSquared); // Calculate distance
-            if (dist > 0) // Ensure distance is non-zero to avoid division by zero
-            {
-                Vector2 normalizedDir = dir / dist; // Normalize direction
-                float viscosityContribution = viscosityCoefficient * particleMass / neighbour.density;
-                float laplacian = KernelLaplacian(dist, smoothingLength); // Calculate Laplacian
-                viscosityForce += velocityDifference * (viscosityContribution * laplacian); // Accumulate force
-            }
-        }
-        return viscosityForce;
-    }
-
-    public float Kernel(float distance, float smoothingLength)
-    {
-        var q = distance / smoothingLength;
-        if (q <= 1)
-            return (1 / (Mathf.PI * Mathf.Pow(smoothingLength, 3))) * 
-                (1 - 1.5f * Mathf.Pow(q, 2) + 0.75f * Mathf.Pow(q, 3));
-        return 0f;
-    }
-
-    public Vector2 KernelGradient(float distance, float smoothingLength, Vector2 dir)
-    {
-        var q = distance / smoothingLength;
-        if (q <= 1)
-        {
-            if (distance < Mathf.Epsilon) 
-                return Vector2.zero; 
-            else
-                return (1 / (Mathf.PI * Mathf.Pow(smoothingLength, 4))) *
-                       (-3 * q + 2.25f * Mathf.Pow(q, 2)) *
-                       (1 / distance) * dir;
-        }
-        return Vector2.zero;
-    }
-
-    public float KernelLaplacian(float distance, float smoothingLength)
-    {
-        var q = distance / smoothingLength;
-        if (q <= 1)
-            return (1 / (Mathf.PI * Mathf.Pow(smoothingLength, 5))) *
-                (-3 * q + 2.25f * q) *
-                (1 / Mathf.Pow(smoothingLength, 2));
-        return 0f;
     }
 }

@@ -314,7 +314,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 5
+  orthographic size: 421.10956
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -339,7 +339,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalPosition: {x: 902, y: 425, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -504,22 +504,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddd020afad022954d93deb54cd6b05df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  searchLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  neighbourSearchRadius: 2
-  particleMass: 0.1
-  smoothingLength: 1.5
-  gasConstant: 50
-  restDensity: 0
-  velocityDifference: 0.001
-  viscosityCoefficient: 0.0001
+  gravity: {x: 0, y: -10}
+  restDensity: 100
+  gasConstant: 2000
+  kernalRadius: 16
+  mass: 2.5
+  viscosityConst: 200
+  timeStep: 0.001
+  boundaryDamping: -0.5
+  interactionInputStrength: 100
+  interactionRadius: 50
+  maxParticles: 2500
+  damParticles: 1000
+  blockParticles: 250
+  view: {x: 1807, y: 846.5}
   particles: []
-  timeStep: 0.1
-  particleObject: {fileID: 3623786729922003235, guid: 4de8ce343ecd3144080c2a68515901cc, type: 3}
-  spawnPos: {x: 0, y: 3.5, z: 0}
-  totalStartingParticles: 250
-  spawnTime: 0.01
+  baseParticle: {fileID: 3623786729922003235, guid: 4de8ce343ecd3144080c2a68515901cc, type: 3}
 --- !u!4 &1306274813
 Transform:
   m_ObjectHideFlags: 0
@@ -680,7 +680,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1462995755
 Transform:
   m_ObjectHideFlags: 0
