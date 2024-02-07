@@ -57,7 +57,7 @@ public class Manager : MonoBehaviour
     private float _nextTapSpawn;
     private bool tapOn = false;
 
-    public Material mat;
+    public Texture aTexture;
 
 
 
@@ -91,10 +91,6 @@ public class Manager : MonoBehaviour
         Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
         Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
 
-        foreach (FluidParticle particle in particles)
-        {
-            Gizmos.DrawSphere(particle.pos, 1f);
-        }
     }
 
     public void OnGUI()
@@ -117,10 +113,10 @@ public class Manager : MonoBehaviour
         GUILayout.EndHorizontal();
 
 
-        //foreach (FluidParticle particle in particles)
-        //{
-        //    Debug.DrawLine(particle.pos, new Vector2(particle.pos.x + 0.01f, particle.pos.y + 0.01f), Color.red, 1);
-        //}
+        foreach (FluidParticle particle in particles)
+        {
+            GUI.DrawTexture(new Rect(particle.pos.x, Screen.height - particle.pos.y, 20f, 20f), aTexture, ScaleMode.ScaleToFit, true, 1.0F);
+        }
     }
 
     public void Update()
