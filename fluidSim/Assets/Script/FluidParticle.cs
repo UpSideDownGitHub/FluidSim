@@ -4,9 +4,9 @@ using UnityEngine;
 using System.Linq;
 
 
-public class FluidParticle : MonoBehaviour
+public class FluidParticle
 {
-    public void Init(Vector2 pos)
+    public FluidParticle(Vector2 pos)
     {
         this.pos = pos;
         velocity = Vector2.zero;

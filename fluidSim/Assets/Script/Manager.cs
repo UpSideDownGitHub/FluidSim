@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEditor;
@@ -27,7 +28,6 @@ public class Manager : MonoBehaviour
     public float boundaryDamping = -0.5f;
 
     [Header("Interaction")]
-    public float interactionInputStrength;
     public float interactionRadius;
 
     // smoothing kernels defined in Müller and their gradients
@@ -47,14 +47,18 @@ public class Manager : MonoBehaviour
 
 
     [Header("Interaction")]
-    public int maxParticles = 2500;
     public int damParticles = 500;
-    public int blockParticles = 250;
 
     [Header("Spawning")]
     public Vector2 view;
     public List<FluidParticle> particles = new();
-    public GameObject baseParticle;
+    public GameObject tap;
+    public float tapSpawnRate;
+    private float _nextTapSpawn;
+    private bool tapOn = false;
+
+    public Material mat;
+
 
 
     public void Start()
@@ -71,8 +75,7 @@ public class Manager : MonoBehaviour
                 if (particles.Count < damParticles)
                 {
                     float jitter = UnityEngine.Random.value / 1;
-                    FluidParticle particle = Instantiate(baseParticle, new Vector2(x + jitter, y), Quaternion.identity).GetComponent<FluidParticle>();
-                    particle.Init(new Vector2(x + jitter, y));
+                    FluidParticle particle = new FluidParticle(new Vector2(x + jitter, y));
                     particles.Add(particle);
                 }
                 else
@@ -87,29 +90,53 @@ public class Manager : MonoBehaviour
         Gizmos.DrawLine(new Vector3(0, view.y, 0), new Vector3(view.x, view.y, 0));
         Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
         Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
+
+        foreach (FluidParticle particle in particles)
+        {
+            Gizmos.DrawSphere(particle.pos, 1f);
+        }
+    }
+
+    public void OnGUI()
+    {
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Reset"))
+        {
+            particles.Clear();
+            spawnParticles();
+        }
+        if (GUILayout.Button("Clear All"))
+        {
+            particles.Clear();
+        }
+        if (GUILayout.Button("Tap"))
+        {
+            tapOn = !tapOn;
+        }
+
+        GUILayout.EndHorizontal();
+
+
+        //foreach (FluidParticle particle in particles)
+        //{
+        //    Debug.DrawLine(particle.pos, new Vector2(particle.pos.x + 0.01f, particle.pos.y + 0.01f), Color.red, 1);
+        //}
     }
 
     public void Update()
     {
+        if (tapOn && Time.time > _nextTapSpawn)
+        {
+            _nextTapSpawn = Time.time + tapSpawnRate;
+            FluidParticle particle = new FluidParticle(new Vector2(tap.transform.position.x, tap.transform.position.y));
+            particles.Add(particle);
+        }
+        
         ComputeDensityPressure();
         ComputeForces();
         Integrate();
 
-        foreach (FluidParticle particle in particles)
-        {
-            particle.transform.position = particle.pos;
-        }
 
-
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            foreach (FluidParticle particle in particles)
-            {
-                Destroy(particle.gameObject);
-            }
-            particles.Clear();
-            spawnParticles();
-        }
     }
 
     public void ComputeDensityPressure()
@@ -155,19 +182,16 @@ public class Manager : MonoBehaviour
             if (Input.GetMouseButton(0))
             {
                 Vector2 inputPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                float sqrDst = Vector2.Dot(inputPoint, particle.pos);
-                if (sqrDst < interactionRadius * interactionRadius)
-                {
-                    float dst = Mathf.Sqrt(sqrDst);
-                    float edgeT = (dst / kernalRadius);
-                    float centreT = 1 - edgeT;
-                    Vector2 dirToCentre = inputPoint / dst;
-
-                    float gravityWeight = 1 - (centreT * Mathf.Clamp01(interactionInputStrength / 10));
-                    Vector2 accel = gravity * gravityWeight + dirToCentre * centreT * interactionInputStrength;
-                    accel -= particle.velocity * centreT;
-                    forceGravity = accel;
-                }
+                Vector2 direction = inputPoint - particle.pos;
+                if (direction.sqrMagnitude < interactionRadius * interactionRadius)
+                    forceGravity = direction * mass / particle.density;
+            }
+            else if (Input.GetMouseButton(1))
+            {
+                Vector2 inputPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector2 direction = inputPoint - particle.pos;
+                if (direction.sqrMagnitude < interactionRadius * interactionRadius)
+                    forceGravity = -direction * mass / particle.density;
             }
 
             particle.force = forcePressure + forceViscosity + forceGravity;
