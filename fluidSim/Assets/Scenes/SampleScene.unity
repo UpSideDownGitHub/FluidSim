@@ -544,11 +544,12 @@ MonoBehaviour:
   timeStep: 0.001
   boundaryDamping: -0.5
   interactionRadius: 150
+  fluidParticle: {fileID: 5875049990870260705, guid: 9b51553c6b47e7e439da785a3e9ace5e, type: 3}
   damParticles: 500
   view: {x: 1481, y: 847.9}
+  particles: []
   tap: {fileID: 762232647}
   tapSpawnRate: 0.1
-  aTexture: {fileID: 10307, guid: 0000000000000000f000000000000000, type: 0}
 --- !u!4 &1306274813
 Transform:
   m_ObjectHideFlags: 0

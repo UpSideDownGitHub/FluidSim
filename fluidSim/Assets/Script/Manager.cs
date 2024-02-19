@@ -30,6 +30,9 @@ public class Manager : MonoBehaviour
     [Header("Interaction")]
     public float interactionRadius;
 
+    [Header("Particles")]
+    public GameObject fluidParticle;
+
     // smoothing kernels defined in Müller and their gradients
     // adapted to 2D per "SPH Based Shallow Water Simulation" by Solenthaler et al.
     public float POLY6
@@ -57,10 +60,6 @@ public class Manager : MonoBehaviour
     private float _nextTapSpawn;
     private bool tapOn = false;
 
-    public Texture aTexture;
-
-
-
     public void Start()
     {
         spawnParticles();
@@ -75,8 +74,10 @@ public class Manager : MonoBehaviour
                 if (particles.Count < damParticles)
                 {
                     float jitter = UnityEngine.Random.value / 1;
-                    FluidParticle particle = new FluidParticle(new Vector2(x + jitter, y));
-                    particles.Add(particle);
+                    GameObject particle = Instantiate(fluidParticle, new Vector2(x + jitter, y), quaternion.identity);
+                    FluidParticle script = particle.GetComponent<FluidParticle>();
+                    script.pos = new Vector2(x + jitter, y);
+                    particles.Add(script);
                 }
                 else
                     return;
@@ -90,7 +91,6 @@ public class Manager : MonoBehaviour
         Gizmos.DrawLine(new Vector3(0, view.y, 0), new Vector3(view.x, view.y, 0));
         Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
         Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
-
     }
 
     public void OnGUI()
@@ -111,12 +111,6 @@ public class Manager : MonoBehaviour
         }
 
         GUILayout.EndHorizontal();
-
-
-        foreach (FluidParticle particle in particles)
-        {
-            GUI.DrawTexture(new Rect(particle.pos.x, Screen.height - particle.pos.y, 20f, 20f), aTexture, ScaleMode.ScaleToFit, true, 1.0F);
-        }
     }
 
     public void Update()
@@ -124,15 +118,18 @@ public class Manager : MonoBehaviour
         if (tapOn && Time.time > _nextTapSpawn)
         {
             _nextTapSpawn = Time.time + tapSpawnRate;
-            FluidParticle particle = new FluidParticle(new Vector2(tap.transform.position.x, tap.transform.position.y));
-            particles.Add(particle);
+            GameObject particle = Instantiate(fluidParticle, new Vector2(tap.transform.position.x, tap.transform.position.y), quaternion.identity);
+            particles.Add(particle.GetComponent<FluidParticle>());
         }
         
         ComputeDensityPressure();
         ComputeForces();
         Integrate();
 
-
+        foreach (var particle in particles)
+        {
+            particle.transform.position = particle.pos;
+        }
     }
 
     public void ComputeDensityPressure()

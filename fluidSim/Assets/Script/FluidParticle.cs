@@ -1,10 +1,8 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-
-public class FluidParticle
+public class FluidParticle : MonoBehaviour
 {
     public FluidParticle(Vector2 pos)
     {
