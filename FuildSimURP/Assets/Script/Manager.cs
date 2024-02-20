@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class Manager : MonoBehaviour
 {
@@ -62,6 +63,9 @@ public class Manager : MonoBehaviour
 
     public void Start()
     {
+        // initilise the UI
+
+
         spawnParticles();
     }
 
@@ -87,30 +91,35 @@ public class Manager : MonoBehaviour
 
     public void OnDrawGizmos()
     {
+        Gizmos.color = Color.green;
         Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(view.x, 0, 0));
         Gizmos.DrawLine(new Vector3(0, view.y, 0), new Vector3(view.x, view.y, 0));
         Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
         Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
     }
 
-    public void OnGUI()
+    public void ResetParticles()
     {
-        GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Reset"))
+        foreach (var item in particles)
         {
-            particles.Clear();
-            spawnParticles();
+            Destroy(item.gameObject);
         }
-        if (GUILayout.Button("Clear All"))
-        {
-            particles.Clear();
-        }
-        if (GUILayout.Button("Tap"))
-        {
-            tapOn = !tapOn;
-        }
+        particles.Clear();
+        spawnParticles();
+    }
 
-        GUILayout.EndHorizontal();
+    public void ClearParticles()
+    {
+        foreach (var item in particles)
+        {
+            Destroy(item.gameObject);
+        }
+        particles.Clear();
+    }
+
+    public void ToggleTap()
+    {
+        tapOn = !tapOn;
     }
 
     public void Update()
@@ -119,6 +128,8 @@ public class Manager : MonoBehaviour
         {
             _nextTapSpawn = Time.time + tapSpawnRate;
             GameObject particle = Instantiate(fluidParticle, new Vector2(tap.transform.position.x, tap.transform.position.y), quaternion.identity);
+            FluidParticle script = particle.GetComponent<FluidParticle>();
+            script.pos = new Vector2(tap.transform.position.x, tap.transform.position.y);
             particles.Add(particle.GetComponent<FluidParticle>());
         }
         
