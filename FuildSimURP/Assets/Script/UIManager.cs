@@ -1,9 +1,11 @@
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using TMPro;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,10 +24,18 @@ public struct SPHValues
     public float interactionRadius;
 }
 
+[Serializable]
+public struct ShaderValues
+{
+    public float thickness;
+    public Color color;
+}
+
 [RequireComponent(typeof(Manager))]
 public class UIManager : MonoBehaviour
 {
     private Manager _manager;
+    private MeshRenderer _shaderRenderer;
 
     [Header("UI Elements")]
     public TMP_InputField gravityXInput;
@@ -51,14 +61,32 @@ public class UIManager : MonoBehaviour
     public Button toggleTapButton;
     public Button resetValuesButton;
 
+    [Header("Material Settings")]
+    public TMP_Text shaderThicknessText;
+    public Slider shaderThicknessSlider;
+
+    public TMP_Text shaderColorText;
+    public Slider shaderColorRSlider;
+    public Slider shaderColorGSlider;
+    public Slider shaderColorBSlider;
+    public Slider shaderColorASlider;
+
+    public Button resetShaderButton;
+
     [Header("Values")]
     public SPHValues min;
     public SPHValues max;
     public SPHValues orignal;
+    public ShaderValues minShader;
+    public ShaderValues maxShader;
+    public ShaderValues orignalShader;
 
     [Header("Menu")]
     public GameObject menu;
     public GameObject open;
+
+    public GameObject shaderMenu;
+    public GameObject openShader;
 
     public void OpenMenu()
     {
@@ -70,12 +98,24 @@ public class UIManager : MonoBehaviour
         menu.SetActive(false);
         open.SetActive(true);
     }
+    public void OpenShaderMenu()
+    {
+        shaderMenu.SetActive(true);
+        openShader.SetActive(false);
+    }
+    public void CloseShaderMenu()
+    {
+        shaderMenu.SetActive(false);
+        openShader.SetActive(true);
+    }
 
     public void Start()
     {
         _manager = GetComponent<Manager>();
+        _shaderRenderer = GameObject.FindGameObjectWithTag("ShaderRenderer").GetComponent<MeshRenderer>();
         SetOrignalValues();
 
+        // SPH
         gravityXInput.onValueChanged.AddListener((val) => gravityXChanged(val));
         gravityXInput.text = _manager.gravity.x.ToString();
         gravityYInput.onValueChanged.AddListener((val) => gravityYChanged(val));
@@ -133,6 +173,33 @@ public class UIManager : MonoBehaviour
         clearButton.onClick.AddListener(() => ClearPressed());
         toggleTapButton.onClick.AddListener(() => TapPressed());
         resetValuesButton.onClick.AddListener(() => resetToOrignalValues());
+
+        // shader
+        shaderThicknessSlider.minValue = minShader.thickness;
+        shaderThicknessSlider.maxValue = maxShader.thickness;
+        shaderThicknessSlider.value = orignalShader.thickness;
+        shaderThicknessSlider.onValueChanged.AddListener((val) => shaderThicknessChanged(val));
+        shaderThicknessText.text = _shaderRenderer.material.GetFloat("_Thickness").ToString();
+
+        shaderColorRSlider.minValue = minShader.color.r;
+        shaderColorRSlider.maxValue = maxShader.color.r;
+        shaderColorRSlider.value = orignalShader.color.r;
+        shaderColorRSlider.onValueChanged.AddListener((val) => shaderColorRChanged(val));
+        shaderColorGSlider.minValue = minShader.color.g;
+        shaderColorGSlider.maxValue = maxShader.color.g;
+        shaderColorGSlider.value = orignalShader.color.g;
+        shaderColorGSlider.onValueChanged.AddListener((val) => shaderColorGChanged(val));
+        shaderColorBSlider.minValue = minShader.color.b;
+        shaderColorBSlider.maxValue = maxShader.color.b;
+        shaderColorBSlider.value = orignalShader.color.b;
+        shaderColorBSlider.onValueChanged.AddListener((val) => shaderColorBChanged(val));
+        shaderColorASlider.minValue = minShader.color.a;
+        shaderColorASlider.maxValue = maxShader.color.a;
+        shaderColorASlider.value = orignalShader.color.a;
+        shaderColorASlider.onValueChanged.AddListener((val) => shaderColorAChanged(val));
+        shaderColorText.text = orignalShader.color.ToString();
+
+        resetShaderButton.onClick.AddListener(() => ResetShaderValues());
     }
 
     public void gravityXChanged(string val)
@@ -198,8 +265,45 @@ public class UIManager : MonoBehaviour
     {
         _manager.ToggleTap();
     }
+
+    public void shaderThicknessChanged(float val)
+    {
+        _shaderRenderer.material.SetFloat("_Thickness", val);
+        shaderThicknessText.text = val.ToString();
+    }
+
+    public void shaderColorRChanged(float val)
+    {
+        Color col = _shaderRenderer.material.GetColor("_Color");
+        col.r = val;
+        _shaderRenderer.material.SetColor("_Color", col);
+        shaderColorText.text = col.ToString();
+    }
+    public void shaderColorGChanged(float val)
+    {
+        Color col = _shaderRenderer.material.GetColor("_Color");
+        col.g = val;
+        _shaderRenderer.material.SetColor("_Color", col);
+        shaderColorText.text = col.ToString();
+    }
+    public void shaderColorBChanged(float val)
+    {
+        Color col = _shaderRenderer.material.GetColor("_Color");
+        col.b = val;
+        _shaderRenderer.material.SetColor("_Color", col);
+        shaderColorText.text = col.ToString();
+    }
+    public void shaderColorAChanged(float val)
+    {
+        Color col = _shaderRenderer.material.GetColor("_Color");
+        col.a = val;
+        _shaderRenderer.material.SetColor("_Color", col);
+        shaderColorText.text = col.ToString();
+    }
+
     public void resetToOrignalValues()
     {
+        // simulation
         _manager.gravity.x = orignal.gravityX;
         gravityXInput.text = _manager.gravity.x.ToString();
         _manager.gravity.y = orignal.gravityY;
@@ -231,8 +335,24 @@ public class UIManager : MonoBehaviour
         interactionRadiusText.text = _manager.interactionRadius.ToString();
     }
 
+    public void ResetShaderValues()
+    {
+        // shader
+        _shaderRenderer.material.SetFloat("_Thickness", orignalShader.thickness);
+        shaderThicknessSlider.value = orignalShader.thickness;
+        shaderThicknessText.text = orignalShader.thickness.ToString();
+
+        _shaderRenderer.material.SetColor("_Color", orignalShader.color);
+        shaderColorRSlider.value = orignalShader.color.r;
+        shaderColorGSlider.value = orignalShader.color.g;
+        shaderColorBSlider.value = orignalShader.color.b;
+        shaderColorASlider.value = orignalShader.color.a;
+        shaderColorText.text = orignalShader.color.ToString();
+    }
+
     public void SetOrignalValues()
     {
+        // simulation
         orignal.gravityX = _manager.gravity.x;
         orignal.gravityY = _manager.gravity.y;
         orignal.restDensity = _manager.restDensity;
@@ -243,5 +363,9 @@ public class UIManager : MonoBehaviour
         orignal.timeStep = _manager.timeStep;
         orignal.boundaryDamping = _manager.boundaryDamping;
         orignal.interactionRadius = _manager.interactionRadius;
+
+        // shader
+        orignalShader.thickness = _shaderRenderer.material.GetFloat("_Thickness");
+        orignalShader.color = _shaderRenderer.material.GetColor("_Color");
     }
 }
