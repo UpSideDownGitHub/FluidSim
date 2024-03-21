@@ -41,15 +41,15 @@ float epsilon()
 }
 float POLY6()
 {
-    return 4f / (PI * pow(kernalRadius, 8f)); 
+    return 4.0f / (PI * pow(kernalRadius, 8.0f)); 
 }
 float SPIKYGRAD()
 {
-    return -10f / (PI * pow(kernalRadius, 5f)); 
+    return -10.0f / (PI * pow(kernalRadius, 5.0f)); 
 }
 float VISCLAP()
 {
-    return 40f / (PI * pow(kernalRadius, 5f)); 
+    return 40.0f / (PI * pow(kernalRadius, 5.0f)); 
 }
 
 [numthreads(NumThreads, 1, 1)]
@@ -58,14 +58,14 @@ void ComputeDensityPressure(uint3 id : SV_DispatchThreadID)
     if (id.x >= numParticles)
         return;
 
-    densities[id.x] = 0f;
+    densities[id.x] = 0.0f;
     for (int i = 0; i < numParticles; i++)
     {
         float2 dir = positions[i] - positions[id.x];
         float dist = dot(dir, dir);
         if (dist < squareRadius())
         {
-            densities[id.x] += mass * POLY6() * pow(squareRadius() - dist, 3f);
+            densities[id.x] += mass * POLY6() * pow(squareRadius() - dist, 3.0f);
         }
     }
     pressures[id.x] = gasConstant * (densities[id.x] - restDensity);
@@ -122,25 +122,25 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
     velocities[id.x] += timeStep * forces[id.x] / densities[id.x];
     positions[id.x] += timeStep * velocities[id.x];
 
-    if (positions[id.x][0] - epsilon < 0f)
+    if (positions[id.x][0] - epsilon() < 0.0f)
     {
         velocities[id.x][0] *= boundaryDamping;
-        positions[id.x][0] = epsilon;
+        positions[id.x][0] = epsilon();
     }
-    if (positions[id.x][0] + epsilon > view[0])
+    if (positions[id.x][0] + epsilon() > view[0])
     {
         velocities[id.x][0] *= boundaryDamping;
-        positions[id.x][0] = view[0] - epsilon;
+        positions[id.x][0] = view[0] - epsilon();
     }
 
-    if (positions[id.x][1] - epsilon < 0f)
+    if (positions[id.x][1] - epsilon() < 0.0f)
     {
         velocities[id.x][1] *= boundaryDamping;
-        positions[id.x][1] = epsilon;
+        positions[id.x][1] = epsilon();
     }
-    if (positions[id.x][1] + epsilon > view[1])
+    if (positions[id.x][1] + epsilon() > view[1])
     {
         velocities[id.x][1] *= boundaryDamping;
-        positions[id.x][1] = view[1] - epsilon;
+        positions[id.x][1] = view[1] - epsilon();
     }
 }
