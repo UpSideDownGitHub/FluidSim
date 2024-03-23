@@ -28,8 +28,11 @@ const float interaction1;
 const float interaction2;
 const float2 interactionPoint;
 
-const int numParticles;
+const float POLY6;
+const float SPIKYGRAD;
+const float VISCLAP;
 
+const uint numParticles;
 
 float squareRadius()
 {
@@ -39,18 +42,6 @@ float epsilon()
 {
     return kernalRadius; 
 }
-float POLY6()
-{
-    return 4.0f / (PI * pow(kernalRadius, 8.0f)); 
-}
-float SPIKYGRAD()
-{
-    return -10.0f / (PI * pow(kernalRadius, 5.0f)); 
-}
-float VISCLAP()
-{
-    return 40.0f / (PI * pow(kernalRadius, 5.0f)); 
-}
 
 [numthreads(NumThreads, 1, 1)]
 void ComputeDensityPressure(uint3 id : SV_DispatchThreadID)
@@ -59,13 +50,13 @@ void ComputeDensityPressure(uint3 id : SV_DispatchThreadID)
         return;
 
     densities[id.x] = 0.0f;
-    for (int i = 0; i < numParticles; i++)
+    for (uint i = 0; i < numParticles; i++)
     {
         float2 dir = positions[i] - positions[id.x];
         float dist = dot(dir, dir);
         if (dist < squareRadius())
         {
-            densities[id.x] += mass * POLY6() * pow(squareRadius() - dist, 3.0f);
+            densities[id.x] += mass * POLY6 * pow(squareRadius() - dist, 3.0f);
         }
     }
     pressures[id.x] = gasConstant * (densities[id.x] - restDensity);
@@ -77,39 +68,39 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     if (id.x >= numParticles)
         return;
 
-    float2 forcePressure = 0;
-    float2 forceViscosity = 0;
+    float2 forcePressure = float2(0, 0);
+    float2 forceViscosity = float2(0, 0);
 
-    for (int i = 0; i < numParticles; i++)
+    for (uint i = 0; i < numParticles; i++)
     {
         if (id.x == i)
             continue;
 
         float2 dir = positions[i] - positions[id.x];
-        float mag = sqrt(dot(dir, dir));
-
-        if (mag < kernalRadius)
+        if (dot(dir, dir) < kernalRadius)
         {
-            float2 ndir = dir / mag;
-            forcePressure += ndir * mass * (pressures[id.x] + pressures[i]) /
-                (2 * densities[i]) * SPIKYGRAD() * pow(kernalRadius - mag, 3);
+            
+            forcePressure += -normalize(dir) * mass * (pressures[id.x] + pressures[i]) /
+                (2.0f * densities[i]) * SPIKYGRAD * pow(kernalRadius - dot(dir, dir), 3.0f);
+
             forceViscosity += viscosityConst * mass * (velocities[i] - velocities[id.x]) /
-                densities[i] * VISCLAP() * (kernalRadius - mag);
+                densities[i] * VISCLAP * (kernalRadius - dot(dir, dir));
         }
     }
+
     float2 forceGravity = gravity * mass / densities[id.x];
-    if (interaction1 != 0)
-    {
-        float2 dir = interactionPoint - positions[id.x];
-        if (dot(dir, dir) < interactionRadius * interactionRadius)
-            forceGravity = dir * mass / densities[id.x];
-    }
-    else if (interaction2 != 0)
-    {
-        float2 dir = interactionPoint - positions[id.x];
-        if (dot(dir, dir) < interactionRadius * interactionRadius)
-            forceGravity = -dir * mass / densities[id.x];
-    }
+    //if (interaction1 != 0 && densities[id.x] != 0)
+    //{
+    //    float2 dir = interactionPoint - positions[id.x];
+    //    if (dot(dir, dir) < interactionRadius * interactionRadius)
+    //        forceGravity = dir * mass / densities[id.x];
+    //}
+    //else if (interaction2 != 0 && densities[id.x] != 0)
+    //{
+    //    float2 dir = interactionPoint - positions[id.x];
+    //    if (dot(dir, dir) < interactionRadius * interactionRadius)
+    //        forceGravity = -dir * mass / densities[id.x];
+    //}
     forces[id.x] = forcePressure + forceViscosity + forceGravity;
 }
 
@@ -122,25 +113,25 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
     velocities[id.x] += timeStep * forces[id.x] / densities[id.x];
     positions[id.x] += timeStep * velocities[id.x];
 
-    if (positions[id.x][0] - epsilon() < 0.0f)
+    if (positions[id.x].x - epsilon() < 0.0f)
     {
-        velocities[id.x][0] *= boundaryDamping;
-        positions[id.x][0] = epsilon();
+        velocities[id.x].x *= boundaryDamping;
+        positions[id.x].x = epsilon();
     }
-    if (positions[id.x][0] + epsilon() > view[0])
+    if (positions[id.x].x + epsilon() > view.x)
     {
-        velocities[id.x][0] *= boundaryDamping;
-        positions[id.x][0] = view[0] - epsilon();
+        velocities[id.x].x *= boundaryDamping;
+        positions[id.x].x = view.x - epsilon();
     }
 
-    if (positions[id.x][1] - epsilon() < 0.0f)
+    if (positions[id.x].y - epsilon() < 0.0f)
     {
-        velocities[id.x][1] *= boundaryDamping;
-        positions[id.x][1] = epsilon();
+        velocities[id.x].y *= boundaryDamping;
+        positions[id.x].y = epsilon();
     }
-    if (positions[id.x][1] + epsilon() > view[1])
+    if (positions[id.x].y + epsilon() > view.y)
     {
-        velocities[id.x][1] *= boundaryDamping;
-        positions[id.x][1] = view[1] - epsilon();
+        velocities[id.x].y *= boundaryDamping;
+        positions[id.x].y = view.y - epsilon();
     }
 }

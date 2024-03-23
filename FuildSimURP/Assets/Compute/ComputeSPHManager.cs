@@ -1,7 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
+using static UnityEngine.ParticleSystem;
 
 public class ComputeSPHManager : MonoBehaviour
 {
@@ -24,7 +28,8 @@ public class ComputeSPHManager : MonoBehaviour
     [Header("Particles")]
     public int numParticles;
     public Vector2 view;
-    public List<FluidParticle> particles = new();
+    //public List<FluidParticle> particles = new();
+    public List<ComputeFluidParticle> particles = new();
     public int initialParticles;
 
     [Header("Shader Things")]
@@ -39,8 +44,14 @@ public class ComputeSPHManager : MonoBehaviour
     const int ComputeForcesKernel = 1;
     const int IntergrateKernel = 2;
 
+    [Header("Display")]
+    public ParticleDisplay2D particleDisplay;
+
+
     void Start()
     {
+        SpawnParticles();
+
         positionBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float2)));
         velocityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float2)));
         forceBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float2)));
@@ -69,6 +80,10 @@ public class ComputeSPHManager : MonoBehaviour
 
         // Particle Number
         compute.SetInt("numParticles", numParticles);
+
+
+        // Drawing
+        particleDisplay.Init(this);
     }
 
     void SetBufferData()
@@ -76,8 +91,8 @@ public class ComputeSPHManager : MonoBehaviour
         List<float2> points = new();
         List<float2> velocities = new();
         List<float2> forces = new();
-        List<float2> densities = new();
-        List<float2> pressures = new();
+        List<float> densities = new();
+        List<float> pressures = new();
         for (int i = 0; i < particles.Count; i++)
         {
             points.Add(particles[i].pos);
@@ -89,8 +104,8 @@ public class ComputeSPHManager : MonoBehaviour
         float2[] allPoints = points.ToArray();
         float2[] allVelocities = velocities.ToArray();
         float2[] allForces = forces.ToArray();
-        float2[] allDensities = densities.ToArray();
-        float2[] allPressures = pressures.ToArray();
+        float[] allDensities = densities.ToArray();
+        float[] allPressures = pressures.ToArray();
         positionBuffer.SetData(allPoints);
         velocityBuffer.SetData(allVelocities);
         forceBuffer.SetData(allForces);
@@ -107,7 +122,7 @@ public class ComputeSPHManager : MonoBehaviour
                 if (particles.Count < initialParticles)
                 {
                     float jitter = UnityEngine.Random.value / 1;
-                    FluidParticle particle = new FluidParticle(new Vector2(x + jitter, y));
+                    ComputeFluidParticle particle = new ComputeFluidParticle(new Vector2(x + jitter, y));
                     particles.Add(particle);
                     numParticles++;
                 }
@@ -122,6 +137,16 @@ public class ComputeSPHManager : MonoBehaviour
     {
         UpdateSettings();
         Run();
+    }
+
+    private void LateUpdate()
+    {
+        /*float2[] positions = new float2[numParticles];
+        positionBuffer.GetData(positions);
+        for (int i = 0; i < numParticles; i++)
+        {
+            particles[i].transform.position = new Vector2(positions[i].x, positions[i].y);
+        }*/
     }
 
     public void Run()
@@ -157,6 +182,9 @@ public class ComputeSPHManager : MonoBehaviour
         compute.SetFloat("interaction1", Input.GetMouseButton(0) ? 1 : 0);
         compute.SetFloat("interaction2", Input.GetMouseButton(1) ? 1 : 0);
         compute.SetVector("interactionPoint", Camera.main.ScreenToWorldPoint(Input.mousePosition));
+        compute.SetFloat("POLY6", 4.0f / (Mathf.PI * Mathf.Pow(kernalRadius, 8.0f)));
+        compute.SetFloat("SPIKYGRAD", -10.0f / (Mathf.PI * Mathf.Pow(kernalRadius, 5.0f)));
+        compute.SetFloat("VISCLAP", 40.0f / (Mathf.PI * Mathf.Pow(kernalRadius, 5.0f)));
     }
 
     private void OnDestroy()
@@ -166,5 +194,14 @@ public class ComputeSPHManager : MonoBehaviour
         forceBuffer.Release();
         densityBuffer.Release();
         pressureBuffer.Release();
+    }
+
+    public void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(view.x, 0, 0));
+        Gizmos.DrawLine(new Vector3(0, view.y, 0), new Vector3(view.x, view.y, 0));
+        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
+        Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
     }
 }
