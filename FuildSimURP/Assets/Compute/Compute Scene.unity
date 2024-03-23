@@ -156,18 +156,18 @@ MonoBehaviour:
   gravity: {x: 0, y: -10}
   restDensity: 300
   gasConstant: 2000
-  kernalRadius: 16
-  mass: 2.5
+  kernalRadius: 10
+  mass: 10
   viscosityCount: 200
-  timeStep: 0.001
+  timeStep: 0.000005
   boundaryDamping: -0.5
   interactionRadius: 10
   interaction1: 0
   interaction2: 0
   interactionPoint: {x: 0, y: 0}
   numParticles: 0
-  view: {x: 1000, y: 548.7}
-  initialParticles: 200
+  view: {x: 1000, y: 500}
+  initialParticles: 1000
   compute: {fileID: 7200000, guid: 556732c9e5e514e4f98dc5666c9b376a, type: 3}
   particleDisplay: {fileID: 598370522}
 --- !u!4 &598370521
@@ -231,7 +231,7 @@ MonoBehaviour:
     m_NumColorKeys: 7
     m_NumAlphaKeys: 2
   gradientResolution: 64
-  velocityDisplayMax: 6.5
+  velocityDisplayMax: 0
 --- !u!1 &1215614356
 GameObject:
   m_ObjectHideFlags: 0

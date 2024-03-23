@@ -40,9 +40,11 @@ public class ComputeSPHManager : MonoBehaviour
     public ComputeBuffer densityBuffer;
     public ComputeBuffer pressureBuffer;
 
-    const int ComputeDensityPressureKernel = 0;
-    const int ComputeForcesKernel = 1;
-    const int IntergrateKernel = 2;
+    const int ComputeDensityKernel = 0;
+    const int ComputeExternalKernel = 1;
+    const int ComputePressureKernel = 2;
+    const int ComputeViscosityKernel = 3;
+    const int IntergrateKernel = 4;
 
     [Header("Display")]
     public ParticleDisplay2D particleDisplay;
@@ -61,16 +63,25 @@ public class ComputeSPHManager : MonoBehaviour
         SetBufferData();
 
         // Compute Density Pressure Kernel
-        compute.SetBuffer(ComputeDensityPressureKernel, "positions", positionBuffer);
-        compute.SetBuffer(ComputeDensityPressureKernel, "densities", densityBuffer);
-        compute.SetBuffer(ComputeDensityPressureKernel, "pressures", pressureBuffer);
+        compute.SetBuffer(ComputeDensityKernel, "positions", positionBuffer);
+        compute.SetBuffer(ComputeDensityKernel, "densities", densityBuffer);
 
-        // Compute Forces Kernel
-        compute.SetBuffer(ComputeForcesKernel, "positions", positionBuffer);
-        compute.SetBuffer(ComputeForcesKernel, "densities", densityBuffer);
-        compute.SetBuffer(ComputeForcesKernel, "pressures", pressureBuffer);
-        compute.SetBuffer(ComputeForcesKernel, "velocities", velocityBuffer);
-        compute.SetBuffer(ComputeForcesKernel, "forces", forceBuffer);
+        // Compute External Kernel
+        compute.SetBuffer(ComputeExternalKernel, "positions", positionBuffer);
+        compute.SetBuffer(ComputeExternalKernel, "densities", densityBuffer);
+        compute.SetBuffer(ComputeExternalKernel, "forces", forceBuffer);
+
+        // Compute Pressure Kernel
+        compute.SetBuffer(ComputePressureKernel, "positions", positionBuffer);
+        compute.SetBuffer(ComputePressureKernel, "densities", densityBuffer);
+        compute.SetBuffer(ComputePressureKernel, "forces", forceBuffer);
+        compute.SetBuffer(ComputePressureKernel, "pressures", pressureBuffer);
+
+        // Compute Viscosity Kernel
+        compute.SetBuffer(ComputeViscosityKernel, "positions", positionBuffer);
+        compute.SetBuffer(ComputeViscosityKernel, "densities", densityBuffer);
+        compute.SetBuffer(ComputeViscosityKernel, "velocities", velocityBuffer);
+        compute.SetBuffer(ComputeViscosityKernel, "forces", forceBuffer);
 
         // Intergrate Kernel
         compute.SetBuffer(IntergrateKernel, "positions", positionBuffer);
@@ -80,7 +91,6 @@ public class ComputeSPHManager : MonoBehaviour
 
         // Particle Number
         compute.SetInt("numParticles", numParticles);
-
 
         // Drawing
         particleDisplay.Init(this);
@@ -139,20 +149,22 @@ public class ComputeSPHManager : MonoBehaviour
         Run();
     }
 
-    private void LateUpdate()
-    {
-        /*float2[] positions = new float2[numParticles];
-        positionBuffer.GetData(positions);
-        for (int i = 0; i < numParticles; i++)
-        {
-            particles[i].transform.position = new Vector2(positions[i].x, positions[i].y);
-        }*/
-    }
-
     public void Run()
     {
-        dispatchKernal(ComputeDensityPressureKernel);
-        dispatchKernal(ComputeForcesKernel);
+        // density
+        //  ¬ Set density value
+        // external
+        //  ¬ add external forces to velocity
+        // pressure
+        //  ¬ calculate pressure force & add to velo
+        // viscosity
+        //  ¬ calculate visocity force & add to velo
+        // update positions
+        //  ¬ update positions based on velo
+        dispatchKernal(ComputeDensityKernel);
+        dispatchKernal(ComputeExternalKernel);
+        dispatchKernal(ComputePressureKernel);
+        dispatchKernal(ComputeViscosityKernel);
         dispatchKernal(IntergrateKernel);
     }
 
@@ -160,10 +172,10 @@ public class ComputeSPHManager : MonoBehaviour
     {
         uint x, y, z;
         compute.GetKernelThreadGroupSizes(kernal, out x, out y, out z);
-        var threadGroupSizes = new Vector3Int((int)x, (int)y, (int)z);
+        Vector3Int threadGroupSizes = new Vector3Int((int)x, (int)y, (int)z);
         int numGroupsX = Mathf.CeilToInt(numParticles / (float)threadGroupSizes.x);
-        int numGroupsY = Mathf.CeilToInt(numParticles / (float)threadGroupSizes.y);
-        int numGroupsZ = Mathf.CeilToInt(numParticles / (float)threadGroupSizes.y);
+        int numGroupsY = Mathf.CeilToInt(1 / (float)threadGroupSizes.y);
+        int numGroupsZ = Mathf.CeilToInt(1 / (float)threadGroupSizes.y);
         compute.Dispatch(kernal, numGroupsX, numGroupsY, numGroupsZ);
     }
 
