@@ -47,17 +47,18 @@ void ComputeDensity(uint3 id : SV_DispatchThreadID)
     if (id.x >= numParticles)
         return;
 
-    double tempValue = 0;
+    double tempValue = 0.001;
     for (uint i = 0; i < numParticles; i++)
     {
         double2 dir = positions[i] - positions[id.x];
-        double dist = dot(dir, dir);
-        if (dist < squareRadius())
+        double squaredNorm = dir.x * dir.x + dir.y * dir.y;
+
+        if (squaredNorm < squareRadius())
         {
-            tempValue += mass * POLY6 * pow(squareRadius() - dist, 3.0f);
+            tempValue += mass * POLY6 * pow(squareRadius() - squaredNorm, 3.0);
         }
     }
-    densities[id.x] = tempValue;
+    densities[id.x] = (float)tempValue;
 }
 
 [numthreads(NumThreads, 1, 1)]
@@ -65,18 +66,18 @@ void ComputeExternal(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= numParticles)
         return;
-    float2 externalForce = gravity * mass / densities[id.x];
+    float2 externalForce = gravity * (mass / densities[id.x]);
     if (interaction1 != 0 && densities[id.x] != 0)
     {
         float2 dir = interactionPoint - positions[id.x];
         if (dot(dir, dir) < interactionRadius * interactionRadius)
-            externalForce = dir * mass / densities[id.x];
+            externalForce = dir * (mass / densities[id.x]);
     }
     else if (interaction2 != 0 && densities[id.x] != 0)
     {
         float2 dir = interactionPoint - positions[id.x];
         if (dot(dir, dir) < interactionRadius * interactionRadius)
-            externalForce = -dir * mass / densities[id.x];
+            externalForce = -dir * (mass / densities[id.x]);
     }
     forces[id.x] += externalForce;
 }
@@ -90,17 +91,19 @@ void ComputePressure(uint3 id : SV_DispatchThreadID)
     pressures[id.x] = gasConstant * (densities[id.x] - restDensity);
 
     double2 forcePressure = double2(0, 0);
-
     for (uint i = 0; i < numParticles; i++)
     {
         if (id.x == i)
             continue;
 
         double2 dir = positions[i] - positions[id.x];
-        if (dot(dir, dir) < kernalRadius)
+        double norm = sqrt(dir.x * dir.x + dir.y * dir.y);
+        
+        if (norm < kernalRadius)
         {
-            forcePressure += -normalize(dir) * mass * (pressures[id.x] + pressures[i]) /
-                (2.0f * densities[i]) * SPIKYGRAD * pow(kernalRadius - dot(dir, dir), 3.0f);
+            forcePressure += -normalize(dir) * mass * 
+                ((pressures[id.x] + pressures[i]) / (2.0f * densities[i])) *
+                SPIKYGRAD * pow(kernalRadius - norm, 3.0f);
         }
     }
     forces[id.x] += (float2)forcePressure;
@@ -120,10 +123,12 @@ void ComputeViscosity(uint3 id : SV_DispatchThreadID)
             continue;
 
         float2 dir = positions[i] - positions[id.x];
-        if (dot(dir, dir) < kernalRadius)
+        double norm = sqrt(dir.x * dir.x + dir.y * dir.y);
+        if (norm < kernalRadius)
         {
-            forceViscosity += viscosityConst * mass * (velocities[i] - velocities[id.x]) /
-                densities[i] * VISCLAP * (kernalRadius - dot(dir, dir));
+            forceViscosity += viscosityConst * mass * 
+                ((velocities[i] - velocities[id.x]) / densities[i]) * 
+                VISCLAP * (kernalRadius - norm);
         }
     }
     forces[id.x] += (float2)forceViscosity;
@@ -136,6 +141,7 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
         return;
 
     velocities[id.x] += timeStep * forces[id.x] / densities[id.x];
+    forces[id.x] = 0;
     positions[id.x] += timeStep * velocities[id.x];
 
     if (positions[id.x].x - kernalRadius < 0.0f)

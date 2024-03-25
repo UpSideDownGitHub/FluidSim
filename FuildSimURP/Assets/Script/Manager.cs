@@ -147,6 +147,7 @@ public class Manager : MonoBehaviour
     {
         foreach (FluidParticle particle in particles)
         {
+
             particle.density = 0f;
             foreach (FluidParticle particle2 in particles)
             {
@@ -159,7 +160,7 @@ public class Manager : MonoBehaviour
         }
     }
 
-    public void ComputeForces()
+        public void ComputeForces()
     {
         foreach (FluidParticle particle in particles)
         {

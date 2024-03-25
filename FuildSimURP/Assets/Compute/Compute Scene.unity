@@ -153,23 +153,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc594514d660c424881c60c3c547fea3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  justSpawn: 0
   gravity: {x: 0, y: -10}
-  restDensity: 300
+  restDensity: 100
   gasConstant: 2000
-  kernalRadius: 10
-  mass: 10
+  kernalRadius: 5
+  mass: 2.5
   viscosityCount: 200
-  timeStep: 0.000005
+  timeStep: 0.0023
   boundaryDamping: -0.5
-  interactionRadius: 10
+  interactionRadius: 150
   interaction1: 0
   interaction2: 0
   interactionPoint: {x: 0, y: 0}
   numParticles: 0
   view: {x: 1000, y: 500}
-  initialParticles: 1000
+  initialParticles: 100
   compute: {fileID: 7200000, guid: 556732c9e5e514e4f98dc5666c9b376a, type: 3}
   particleDisplay: {fileID: 598370522}
+  particlePositions: []
+  particleVelocity: []
+  particleForces: []
+  particleDensity: []
+  particlePressure: []
 --- !u!4 &598370521
 Transform:
   m_ObjectHideFlags: 0
