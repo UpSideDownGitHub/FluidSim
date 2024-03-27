@@ -140,7 +140,7 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
     if (id.x >= numParticles)
         return;
 
-    velocities[id.x] += timeStep * forces[id.x] / densities[id.x];
+    velocities[id.x] += timeStep * (forces[id.x] / densities[id.x]);
     forces[id.x] = 0;
     positions[id.x] += timeStep * velocities[id.x];
 

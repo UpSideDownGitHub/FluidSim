@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
 using static UnityEngine.ParticleSystem;
 
@@ -57,6 +58,19 @@ public class ComputeSPHManager : MonoBehaviour
     public List<Vector2> particleForces;
     public List<float> particleDensity;
     public List<float> particlePressure;
+
+    public float POLY6
+    {
+        get { return 4f / (Mathf.PI * Mathf.Pow(kernalRadius, 8f)); }
+    }
+    public float SPIKYGRAD
+    {
+        get { return -10f / (Mathf.PI * Mathf.Pow(kernalRadius, 5f)); }
+    }
+    public float VISCLAP
+    {
+        get { return 40f / (Mathf.PI * Mathf.Pow(kernalRadius, 5f)); }
+    }
 
 
     void Start()
@@ -154,6 +168,8 @@ public class ComputeSPHManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        Time.timeScale = timeScale;
+
         UpdateSettings();
         Run();
 
@@ -238,16 +254,16 @@ public class ComputeSPHManager : MonoBehaviour
         compute.SetFloat("kernalRadius", kernalRadius);
         compute.SetFloat("mass", mass);
         compute.SetFloat("viscosityConst", viscosityCount);
-        compute.SetFloat("timeStep", timeStep);
+        compute.SetFloat("timeStep", timeStep * Time.deltaTime);
         compute.SetFloat("boundaryDamping", boundaryDamping);
         compute.SetVector("view", view);
         compute.SetFloat("interactionRadius", interactionRadius);
         compute.SetFloat("interaction1", Input.GetMouseButton(0) ? 1 : 0);
         compute.SetFloat("interaction2", Input.GetMouseButton(1) ? 1 : 0);
         compute.SetVector("interactionPoint", Camera.main.ScreenToWorldPoint(Input.mousePosition));
-        compute.SetFloat("POLY6", 4.0f / (Mathf.PI * Mathf.Pow(kernalRadius, 8.0f)));
-        compute.SetFloat("SPIKYGRAD", -10.0f / (Mathf.PI * Mathf.Pow(kernalRadius, 5.0f)));
-        compute.SetFloat("VISCLAP", 40.0f / (Mathf.PI * Mathf.Pow(kernalRadius, 5.0f)));
+        compute.SetFloat("POLY6", POLY6);
+        compute.SetFloat("SPIKYGRAD", SPIKYGRAD);
+        compute.SetFloat("VISCLAP", VISCLAP);
     }
 
     private void OnDestroy()
