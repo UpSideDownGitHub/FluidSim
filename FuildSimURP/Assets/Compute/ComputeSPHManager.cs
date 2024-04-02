@@ -4,9 +4,10 @@ using UnityEngine;
 public class ComputeSPHManager : MonoBehaviour
 {
     public bool justSpawn;
+    public bool showValues;
 
     [Header("Simulation Values")]
-    public Vector2 gravity = new(0f, -10f);
+    public Vector3 gravity = new(0f, -10f, 0f);
     public float restDensity = 300f;
     public float gasConstant = 2000f;
     public float kernalRadius = 16f;
@@ -19,11 +20,11 @@ public class ComputeSPHManager : MonoBehaviour
     public float interactionRadius;
     public float interaction1;
     public float interaction2;
-    public Vector2 interactionPoint;
+    public Vector3 interactionPoint;
 
     [Header("Particles")]
     public int numParticles;
-    public Vector2 view;
+    public Vector3 view;
     //public List<FluidParticle> particles = new();
     public List<ComputeFluidParticle> particles = new();
     public int initialParticles;
@@ -43,11 +44,11 @@ public class ComputeSPHManager : MonoBehaviour
     const int IntergrateKernel = 4;
 
     [Header("Display")]
-    public ParticleDisplay2D particleDisplay;
+    public ParticleDisplay3D particleDisplay;
 
-    public List<Vector2> particlePositions;
-    public List<Vector2> particleVelocity;
-    public List<Vector2> particleForces;
+    public List<Vector3> particlePositions;
+    public List<Vector3> particleVelocity;
+    public List<Vector3> particleForces;
     public List<float> particleDensity;
     public List<float> particlePressure;
 
@@ -69,9 +70,9 @@ public class ComputeSPHManager : MonoBehaviour
     {
         SpawnParticles();
 
-        positionBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float2)));
-        velocityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float2)));
-        forceBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float2)));
+        positionBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
+        velocityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
+        forceBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
         densityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
         pressureBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
 
@@ -113,9 +114,9 @@ public class ComputeSPHManager : MonoBehaviour
 
     void SetBufferData()
     {
-        List<float2> points = new();
-        List<float2> velocities = new();
-        List<float2> forces = new();
+        List<float3> points = new();
+        List<float3> velocities = new();
+        List<float3> forces = new();
         List<float> densities = new();
         List<float> pressures = new();
         for (int i = 0; i < particles.Count; i++)
@@ -126,9 +127,9 @@ public class ComputeSPHManager : MonoBehaviour
             densities.Add(particles[i].density);
             pressures.Add(particles[i].pressure);
         }
-        float2[] allPoints = points.ToArray();
-        float2[] allVelocities = velocities.ToArray();
-        float2[] allForces = forces.ToArray();
+        float3[] allPoints = points.ToArray();
+        float3[] allVelocities = velocities.ToArray();
+        float3[] allForces = forces.ToArray();
         float[] allDensities = densities.ToArray();
         float[] allPressures = pressures.ToArray();
         positionBuffer.SetData(allPoints);
@@ -142,17 +143,20 @@ public class ComputeSPHManager : MonoBehaviour
     {
         for (float y = kernalRadius; y < view.y - kernalRadius * 2f; y += kernalRadius)
         {
-            for (float x = view.x / 5; x <= (view.x / 5) * 4; x += kernalRadius)
+            for (float x = view.x / 10; x <= (view.x * 9) / 10; x += kernalRadius)
             {
-                if (particles.Count < initialParticles || justSpawn)
+                for (float z = view.z / 10; z <= (view.z * 9) / 10; z += kernalRadius)
                 {
-                    float jitter = UnityEngine.Random.value / 1;
-                    ComputeFluidParticle particle = new ComputeFluidParticle(new Vector2(x + jitter, y));
-                    particles.Add(particle);
-                    numParticles++;
+                    if (particles.Count < initialParticles || justSpawn)
+                    {
+                        float jitter = UnityEngine.Random.value / 1;
+                        ComputeFluidParticle particle = new ComputeFluidParticle(new float3(x + jitter, y, z + jitter));
+                        particles.Add(particle);
+                        numParticles++;
+                    }
+                    else
+                        return;
                 }
-                else
-                    return;
             }
         }
     }
@@ -163,48 +167,8 @@ public class ComputeSPHManager : MonoBehaviour
 
         UpdateSettings();
         Run();
-
-        // printing
-
-        //particlePositions.Clear();
-        //float2[] positions = new float2[particles.Count];
-        //positionBuffer.GetData(positions);
-        //for (int i = 0; i < positions.Length; i++)
-        //{
-        //    particlePositions.Add(new Vector2(positions[i].x, positions[i].y));
-        //}
-
-        //particleVelocity.Clear();
-        //float2[] velocity = new float2[particles.Count];
-        //velocityBuffer.GetData(velocity);
-        //for (int i = 0; i < velocity.Length; i++)
-        //{
-        //    particleVelocity.Add(new Vector2(velocity[i].x, velocity[i].y));
-        //}
-
-        //particleForces.Clear();
-        //float2[] forces = new float2[particles.Count];
-        //forceBuffer.GetData(forces);
-        //for (int i = 0; i < forces.Length; i++)
-        //{
-        //    particleForces.Add(new Vector2(forces[i].x, forces[i].y));
-        //}
-
-        //particleDensity.Clear();
-        //float[] densities = new float[particles.Count];
-        //densityBuffer.GetData(densities);
-        //for (int i = 0; i < densities.Length; i++)
-        //{
-        //    particleDensity.Add(densities[i]);
-        //}
-
-        //particlePressure.Clear();
-        //float[] pressures = new float[particles.Count];
-        //pressureBuffer.GetData(pressures);
-        //for (int i = 0; i < pressures.Length; i++)
-        //{
-        //    particlePressure.Add(pressures[i]);
-        //}
+        if (showValues)
+            ShowValues();
     }
 
     public void Run()
@@ -269,9 +233,50 @@ public class ComputeSPHManager : MonoBehaviour
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(view.x, 0, 0));
-        Gizmos.DrawLine(new Vector3(0, view.y, 0), new Vector3(view.x, view.y, 0));
-        Gizmos.DrawLine(new Vector3(0, 0, 0), new Vector3(0, view.y, 0));
-        Gizmos.DrawLine(new Vector3(view.x, 0, 0), new Vector3(view.x, view.y, 0));
+        var center = new Vector3(view.x / 2, view.y / 2, view.z / 2);
+        Gizmos.DrawWireCube(center, view);
+    }
+
+    public void ShowValues()
+    {
+        particlePositions.Clear();
+        float3[] positions = new float3[particles.Count];
+        positionBuffer.GetData(positions);
+        for (int i = 0; i < positions.Length; i++)
+        {
+            particlePositions.Add(new Vector3(positions[i].x, positions[i].y, positions[i].z));
+        }
+
+        particleVelocity.Clear();
+        float3[] velocity = new float3[particles.Count];
+        velocityBuffer.GetData(velocity);
+        for (int i = 0; i < velocity.Length; i++)
+        {
+            particleVelocity.Add(new Vector3(velocity[i].x, velocity[i].y, velocity[i].z));
+        }
+
+        particleForces.Clear();
+        float3[] forces = new float3[particles.Count];
+        forceBuffer.GetData(forces);
+        for (int i = 0; i < forces.Length; i++)
+        {
+            particleForces.Add(new Vector3(forces[i].x, forces[i].y, forces[i].z));
+        }
+
+        particleDensity.Clear();
+        float[] densities = new float[particles.Count];
+        densityBuffer.GetData(densities);
+        for (int i = 0; i < densities.Length; i++)
+        {
+            particleDensity.Add(densities[i]);
+        }
+
+        particlePressure.Clear();
+        float[] pressures = new float[particles.Count];
+        pressureBuffer.GetData(pressures);
+        for (int i = 0; i < pressures.Length; i++)
+        {
+            particlePressure.Add(pressures[i]);
+        }
     }
 }

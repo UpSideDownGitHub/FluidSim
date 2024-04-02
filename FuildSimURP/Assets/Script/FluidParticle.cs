@@ -1,21 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using Unity.Mathematics;
 
 public class ComputeFluidParticle
 {
-    public ComputeFluidParticle(Vector2 pos)
+    public ComputeFluidParticle(float3 pos)
     {
         this.pos = pos;
-        velocity = Vector2.zero;
-        force = Vector2.zero;
+        velocity = float3.zero;
+        force = float3.zero;
         density = 0;
         pressure = 0;
     }
 
-    public Vector2 pos;
-    public Vector2 velocity;
-    public Vector2 force;
+    public float3 pos;
+    public float3 velocity;
+    public float3 force;
     public float density;
     public float pressure;
 }

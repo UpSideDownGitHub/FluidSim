@@ -57,7 +57,7 @@ public class ParticleDisplay2D : MonoBehaviour
 		}
 	}
 
-	public static void TextureFromGradient(ref Texture2D texture, int width, Gradient gradient, FilterMode filterMode = FilterMode.Bilinear)
+	public void TextureFromGradient(ref Texture2D texture, int width, Gradient gradient, FilterMode filterMode = FilterMode.Bilinear)
 	{
 		if (texture == null)
 		{

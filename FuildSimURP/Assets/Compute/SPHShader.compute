@@ -8,14 +8,14 @@ static const int NumThreads = 64;
 static const float PI = 3.14159265f;
 
 //buffers
-RWStructuredBuffer<float2> positions;
-RWStructuredBuffer<float2> velocities;
-RWStructuredBuffer<float2> forces;
+RWStructuredBuffer<float3> positions;
+RWStructuredBuffer<float3> velocities;
+RWStructuredBuffer<float3> forces;
 RWStructuredBuffer<float> densities;
 RWStructuredBuffer<float> pressures;
 
 // variables
-const float2 gravity;
+const float3 gravity;
 const float restDensity;
 const float gasConstant;
 const float kernalRadius;
@@ -23,12 +23,12 @@ const float mass;
 const float viscosityConst;
 const float timeStep;
 const float boundaryDamping;
-const float2 view;
+const float3 view;
 
 const float interactionRadius;
 const float interaction1;
 const float interaction2;
-const float2 interactionPoint;
+const float3 interactionPoint;
 
 const float POLY6;
 const float SPIKYGRAD;
@@ -50,8 +50,8 @@ void ComputeDensity(uint3 id : SV_DispatchThreadID)
     double tempValue = 0.001;
     for (uint i = 0; i < numParticles; i++)
     {
-        double2 dir = positions[i] - positions[id.x];
-        double squaredNorm = dir.x * dir.x + dir.y * dir.y;
+        double3 dir = positions[i] - positions[id.x];
+        double squaredNorm = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
 
         if (squaredNorm < squareRadius())
         {
@@ -66,20 +66,20 @@ void ComputeExternal(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= numParticles)
         return;
-    float2 externalForce = gravity * (mass / densities[id.x]);
+    double3 externalForce = gravity * (mass / densities[id.x]);
     if (interaction1 != 0 && densities[id.x] != 0)
     {
-        float2 dir = interactionPoint - positions[id.x];
+        double3 dir = interactionPoint - positions[id.x];
         if (dot(dir, dir) < interactionRadius * interactionRadius)
             externalForce = dir * (mass / densities[id.x]);
     }
     else if (interaction2 != 0 && densities[id.x] != 0)
     {
-        float2 dir = interactionPoint - positions[id.x];
+        double3 dir = interactionPoint - positions[id.x];
         if (dot(dir, dir) < interactionRadius * interactionRadius)
             externalForce = -dir * (mass / densities[id.x]);
     }
-    forces[id.x] += externalForce;
+    forces[id.x] += (float3)externalForce;
 }
 
 [numthreads(NumThreads, 1, 1)]
@@ -90,14 +90,14 @@ void ComputePressure(uint3 id : SV_DispatchThreadID)
 
     pressures[id.x] = gasConstant * (densities[id.x] - restDensity);
 
-    double2 forcePressure = double2(0, 0);
+    double3 forcePressure = double3(0, 0, 0);
     for (uint i = 0; i < numParticles; i++)
     {
         if (id.x == i)
             continue;
 
-        double2 dir = positions[i] - positions[id.x];
-        double norm = sqrt(dir.x * dir.x + dir.y * dir.y);
+        double3 dir = positions[i] - positions[id.x];
+        double norm = sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
         
         if (norm < kernalRadius)
         {
@@ -106,7 +106,7 @@ void ComputePressure(uint3 id : SV_DispatchThreadID)
                 SPIKYGRAD * pow(kernalRadius - norm, 3.0f);
         }
     }
-    forces[id.x] += (float2)forcePressure;
+    forces[id.x] += (float3)forcePressure;
 }
 
 [numthreads(NumThreads, 1, 1)]
@@ -115,15 +115,15 @@ void ComputeViscosity(uint3 id : SV_DispatchThreadID)
     if (id.x >= numParticles)
         return;
 
-    double2 forceViscosity = double2(0, 0);
+    double3 forceViscosity = double3(0, 0, 0);
 
     for (uint i = 0; i < numParticles; i++)
     {
         if (id.x == i)
             continue;
 
-        float2 dir = positions[i] - positions[id.x];
-        double norm = sqrt(dir.x * dir.x + dir.y * dir.y);
+        double3 dir = positions[i] - positions[id.x];
+        double norm = sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
         if (norm < kernalRadius)
         {
             forceViscosity += viscosityConst * mass * 
@@ -131,7 +131,7 @@ void ComputeViscosity(uint3 id : SV_DispatchThreadID)
                 VISCLAP * (kernalRadius - norm);
         }
     }
-    forces[id.x] += (float2)forceViscosity;
+    forces[id.x] += (float3)forceViscosity;
 }
 
 [numthreads(NumThreads, 1, 1)]
@@ -165,4 +165,16 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
         velocities[id.x].y *= boundaryDamping;
         positions[id.x].y = view.y - kernalRadius;
     }
+    
+    if (positions[id.x].z - kernalRadius < 0.0f)
+    {
+        velocities[id.x].z *= boundaryDamping;
+        positions[id.x].z = kernalRadius;
+    }
+    if (positions[id.x].z + kernalRadius > view.z)
+    {
+        velocities[id.x].z *= boundaryDamping;
+        positions[id.x].z = view.z - kernalRadius;
+    }
+
 }
