@@ -1,14 +1,6 @@
-using JetBrains.Annotations;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
-using UnityEngine.UI;
-using static UnityEngine.ParticleSystem;
-
 public class ComputeSPHManager : MonoBehaviour
 {
     public bool justSpawn;
@@ -168,7 +160,6 @@ public class ComputeSPHManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Time.timeScale = timeScale;
 
         UpdateSettings();
         Run();
