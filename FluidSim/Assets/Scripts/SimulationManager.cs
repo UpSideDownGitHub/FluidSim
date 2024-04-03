@@ -18,7 +18,7 @@ public class SimulationManager : MonoBehaviour
      *  - Before Simulation
      *      ##Selection Of Vehical##
      *      ##Toggle Collisions##
-     *      ¬Start Simulation 
+     *      ##Start Simulation##
      *  - During Simulation
      *      ¬Change Simulation Values During Simulation
      *      ¬Change Particle View Values During Simulation
@@ -26,6 +26,11 @@ public class SimulationManager : MonoBehaviour
      *      ¬Pause/Resume During Simulation
      *      ¬Stop Simulation During Simulation
     */
+
+    [Header("UI Management")]
+    public GameObject startUI;
+    public GameObject runningUI;
+
 
     [Header("Vehical Selection")]
     /* Order:
@@ -48,7 +53,12 @@ public class SimulationManager : MonoBehaviour
     public ComputeSPHManager sphManager;
     public ParticleDisplay3D particleDisplay;
     public SimulationState state = SimulationState.START;
-    
+
+    public void Start()
+    {
+        mainObjects[_previous].SetActive(true);
+    }
+
     public void OnDropDownValueChanged(TMP_Dropdown change)
     {
         mainObjects[_previous].SetActive(false);
@@ -69,11 +79,30 @@ public class SimulationManager : MonoBehaviour
     {
         sphManager.StartSimulation(fileNames[_previous]);
         state = SimulationState.RUNNING;
+        startUI.SetActive(false);
+        runningUI.SetActive(true);
+    }
+
+    public void ResetSystem()
+    {
+        state = SimulationState.START;
+        sphManager.DestroyCurrent();
+        sphManager.StartSimulation(fileNames[_previous]);
+        state = SimulationState.RUNNING;
+        startUI.SetActive(false);
+        runningUI.SetActive(true);
+    }
+
+    public void StopSimulation()
+    {
+        state = SimulationState.START;
+        sphManager.DestroyCurrent();
+        startUI.SetActive(true);
+        runningUI.SetActive(false);
     }
 
     public void Update()
     {
-
         switch(state)
         {
             case SimulationState.START:
@@ -83,6 +112,7 @@ public class SimulationManager : MonoBehaviour
                 particleDisplay.UpdateDisplay();
                 break;
             case SimulationState.PAUSED:
+                particleDisplay.UpdateDisplay();
                 break;
             default:
                 break;

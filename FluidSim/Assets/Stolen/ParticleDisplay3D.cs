@@ -21,6 +21,12 @@ public class ParticleDisplay3D : MonoBehaviour
     public int meshResolution;
     public int debug_MeshTriCount;
 
+    public void Reset()
+    {
+        argsBuffer.Release();
+        needsUpdate = true;
+    }
+
     public void Init(ComputeSPHManager sim)
     {
         mat = new Material(shader);

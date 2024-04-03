@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 public class ComputeSPHManager : MonoBehaviour
 {
@@ -48,6 +49,7 @@ public class ComputeSPHManager : MonoBehaviour
     [Header("Display")]
     public ParticleDisplay3D particleDisplay;
 
+    // FOR DEBUGGING THESE WILL SHOW DATA IN INSPECTOR
     public List<Vector3> particlePositions;
     public List<Vector3> particleVelocity;
     public List<Vector3> particleForces;
@@ -77,6 +79,19 @@ public class ComputeSPHManager : MonoBehaviour
                 balls = JsonUtility.FromJson<Balls>(json);
             }
         }
+    }
+
+    public void DestroyCurrent()
+    {
+        positionBuffer.Release();
+        velocityBuffer.Release();
+        forceBuffer.Release();
+        densityBuffer.Release();
+        pressureBuffer.Release();
+        collisionSphereBuffer.Release();
+        particles.Clear();
+        numParticles = 0;
+        particleDisplay.Reset();
     }
 
     public void StartSimulation(string collisionDataName)
