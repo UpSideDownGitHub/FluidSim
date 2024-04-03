@@ -26,9 +26,8 @@ const float boundaryDamping;
 const float3 view;
 
 const float interactionRadius;
-const float interaction1;
-const float interaction2;
-const float3 interactionPoint;
+const float3 interactionPoint1;
+const float3 interactionPoint2;
 
 const float POLY6;
 const float SPIKYGRAD;
@@ -67,15 +66,15 @@ void ComputeExternal(uint3 id : SV_DispatchThreadID)
     if (id.x >= numParticles)
         return;
     double3 externalForce = gravity * (mass / densities[id.x]);
-    if (interaction1 != 0 && densities[id.x] != 0)
+    if (densities[id.x] != 0)
     {
-        double3 dir = interactionPoint - positions[id.x];
+        double3 dir = interactionPoint1 - positions[id.x];
         if (dot(dir, dir) < interactionRadius * interactionRadius)
             externalForce = dir * (mass / densities[id.x]);
     }
-    else if (interaction2 != 0 && densities[id.x] != 0)
+    if (densities[id.x] != 0)
     {
-        double3 dir = interactionPoint - positions[id.x];
+        double3 dir = interactionPoint2 - positions[id.x];
         if (dot(dir, dir) < interactionRadius * interactionRadius)
             externalForce = -dir * (mass / densities[id.x]);
     }

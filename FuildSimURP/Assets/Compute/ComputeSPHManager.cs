@@ -18,9 +18,10 @@ public class ComputeSPHManager : MonoBehaviour
 
     [Header("Interaction")]
     public float interactionRadius;
-    public float interaction1;
-    public float interaction2;
-    public Vector3 interactionPoint;
+    public GameObject attractionObject;
+    public GameObject repulshionObject;
+    private Vector3 _interactionPoint1;
+    private Vector3 _interactionPoint2;
 
     [Header("Particles")]
     public int numParticles;
@@ -212,10 +213,11 @@ public class ComputeSPHManager : MonoBehaviour
         compute.SetFloat("timeStep", timeStep * Time.deltaTime);
         compute.SetFloat("boundaryDamping", boundaryDamping);
         compute.SetVector("view", view);
+
         compute.SetFloat("interactionRadius", interactionRadius);
-        compute.SetFloat("interaction1", Input.GetMouseButton(0) ? 1 : 0);
-        compute.SetFloat("interaction2", Input.GetMouseButton(1) ? 1 : 0);
-        compute.SetVector("interactionPoint", Camera.main.ScreenToWorldPoint(Input.mousePosition));
+        compute.SetVector("interactionPoint1", attractionObject.transform.position);
+        compute.SetVector("interactionPoint2", repulshionObject.transform.position);
+        
         compute.SetFloat("POLY6", POLY6);
         compute.SetFloat("SPIKYGRAD", SPIKYGRAD);
         compute.SetFloat("VISCLAP", VISCLAP);
