@@ -228,6 +228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   justSpawn: 0
   showValues: 0
+  fileName: Sports_Balls2
   gravity: {x: 0, y: -10, z: 0}
   restDensity: 200
   gasConstant: 50000
@@ -236,6 +237,7 @@ MonoBehaviour:
   viscosityCount: 200
   timeStep: 0.02
   boundaryDamping: -0.5
+  collisionSphereRadius: 50
   interactionRadius: 150
   attractionObject: {fileID: 1886089232}
   repulshionObject: {fileID: 2000643484}
@@ -322,16 +324,28 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 127
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 3.7
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 128
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2fca2a75140793c4580ffe7bb057d10f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -400,7 +414,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ballsParent: {fileID: 840406251}
-  fileName: Sports_Balls
+  fileName: Sports_Balls2
 --- !u!1 &1215614356
 GameObject:
   m_ObjectHideFlags: 0
@@ -637,7 +651,7 @@ Transform:
   m_GameObject: {fileID: 1886089232}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 357.22687, y: 145.35521, z: 115.52541}
+  m_LocalPosition: {x: 432.1, y: 145.35521, z: 115.52541}
   m_LocalScale: {x: 10, y: 10, z: 10}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -742,7 +756,7 @@ Transform:
   m_GameObject: {fileID: 2000643484}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -46.406357, y: 145.35521, z: 115.52541}
+  m_LocalPosition: {x: -118.1, y: 145.35521, z: 115.52541}
   m_LocalScale: {x: 10, y: 10, z: 10}
   m_ConstrainProportionsScale: 1
   m_Children: []

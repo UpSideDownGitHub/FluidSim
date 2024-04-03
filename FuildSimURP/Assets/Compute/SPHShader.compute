@@ -3,6 +3,7 @@
 #pragma kernel ComputePressure
 #pragma kernel ComputeViscosity
 #pragma kernel Intergrate
+#pragma kernel CollisionDetection
 
 static const int NumThreads = 64;
 static const float PI = 3.14159265f;
@@ -13,6 +14,8 @@ RWStructuredBuffer<float3> velocities;
 RWStructuredBuffer<float3> forces;
 RWStructuredBuffer<float> densities;
 RWStructuredBuffer<float> pressures;
+
+RWStructuredBuffer<float3> collisionSpheres;
 
 // variables
 const float3 gravity;
@@ -32,6 +35,9 @@ const float3 interactionPoint2;
 const float POLY6;
 const float SPIKYGRAD;
 const float VISCLAP;
+
+const float collisionSphereRadius;
+const uint collisionSphereCount;
 
 const uint numParticles;
 
@@ -174,6 +180,42 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
     {
         velocities[id.x].z *= boundaryDamping;
         positions[id.x].z = view.z - kernalRadius;
+    }
+
+}
+
+bool SphereSphereIntersection(float3 pos1, float3 pos2)
+{
+    float3 dist = pos1 - pos2;
+    float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+    float sumRadius = kernalRadius + collisionSphereRadius;
+    if (length <= sumRadius)
+        return true;
+    return false;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void CollisionDetection(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numParticles)
+        return;
+
+    for (int i = 0; i < collisionSphereCount; i++)
+    {
+        if (SphereSphereIntersection(positions[id.x], collisionSpheres[i]))
+        {
+            float3 xDir = positions[id.x] - collisionSpheres[i];
+            float3 normX = float3(xDir.x / 3, xDir.y / 3, xDir.z / 3);
+            float xdotv = dot(normX, velocities[id.x]);
+            float3 veloX = normX * xdotv;
+            float3 veloY = velocities[id.x] - veloX;
+            xDir *= -1;
+            float3 xdotv2 = float3(xDir.x / 3, xDir.y / 3, xDir.z / 3);
+            float3 veloX2 = xDir * xdotv2;
+            
+            velocities[id.x] = (veloX * (mass - 999) / (mass + 999))
+                + (veloX2 * (2 * 999) / (mass + 999)) + veloY;
+        }
     }
 
 }

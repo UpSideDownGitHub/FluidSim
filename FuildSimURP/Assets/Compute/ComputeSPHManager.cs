@@ -20,6 +20,7 @@ public class ComputeSPHManager : MonoBehaviour
     public float viscosityCount = 200f;
     public float timeStep = 0.001f;
     public float boundaryDamping = -0.5f;
+    public float collisionSphereRadius;
 
     [Header("Interaction")]
     public float interactionRadius;
@@ -42,12 +43,14 @@ public class ComputeSPHManager : MonoBehaviour
     public ComputeBuffer forceBuffer;
     public ComputeBuffer densityBuffer;
     public ComputeBuffer pressureBuffer;
+    public ComputeBuffer collisionSphereBuffer;
 
     const int ComputeDensityKernel = 0;
     const int ComputeExternalKernel = 1;
     const int ComputePressureKernel = 2;
     const int ComputeViscosityKernel = 3;
     const int IntergrateKernel = 4;
+    const int CollisionKernel = 5;
 
     [Header("Display")]
     public ParticleDisplay3D particleDisplay;
@@ -93,6 +96,9 @@ public class ComputeSPHManager : MonoBehaviour
         forceBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
         densityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
         pressureBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
+        collisionSphereBuffer = new ComputeBuffer(balls.balls.Count, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
+
+
 
         SetBufferData();
 
@@ -123,8 +129,15 @@ public class ComputeSPHManager : MonoBehaviour
         compute.SetBuffer(IntergrateKernel, "velocities", velocityBuffer);
         compute.SetBuffer(IntergrateKernel, "forces", forceBuffer);
 
+        // Collision Kernel
+        compute.SetBuffer(CollisionKernel, "positions", positionBuffer);
+        compute.SetBuffer(CollisionKernel, "collisionSpheres", collisionSphereBuffer);
+
         // Particle Number
         compute.SetInt("numParticles", numParticles);
+
+        // Collision Number
+        compute.SetInt("collisionSphereCount", balls.balls.Count);
 
         // Drawing
         particleDisplay.Init(this);
@@ -137,6 +150,7 @@ public class ComputeSPHManager : MonoBehaviour
         List<float3> forces = new();
         List<float> densities = new();
         List<float> pressures = new();
+        List<float3> collisionSpheres = new();
         for (int i = 0; i < particles.Count; i++)
         {
             points.Add(particles[i].pos);
@@ -145,16 +159,22 @@ public class ComputeSPHManager : MonoBehaviour
             densities.Add(particles[i].density);
             pressures.Add(particles[i].pressure);
         }
+        for (int i = 0; i < balls.balls.Count; i++)
+        {
+            collisionSpheres.Add(balls.balls[i]);
+        }
         float3[] allPoints = points.ToArray();
         float3[] allVelocities = velocities.ToArray();
         float3[] allForces = forces.ToArray();
         float[] allDensities = densities.ToArray();
         float[] allPressures = pressures.ToArray();
+        float3[] allCollisionSpheres = collisionSpheres.ToArray();
         positionBuffer.SetData(allPoints);
         velocityBuffer.SetData(allVelocities);
         forceBuffer.SetData(allForces);
         densityBuffer.SetData(allDensities);
         pressureBuffer.SetData(allPressures);
+        collisionSphereBuffer.SetData(allCollisionSpheres);
     }
 
     public void SpawnParticles()
@@ -206,6 +226,7 @@ public class ComputeSPHManager : MonoBehaviour
         dispatchKernal(ComputePressureKernel);
         dispatchKernal(ComputeViscosityKernel);
         dispatchKernal(IntergrateKernel);
+        dispatchKernal(CollisionKernel);
     }
 
     public void dispatchKernal(int kernal)
@@ -238,6 +259,8 @@ public class ComputeSPHManager : MonoBehaviour
         compute.SetFloat("POLY6", POLY6);
         compute.SetFloat("SPIKYGRAD", SPIKYGRAD);
         compute.SetFloat("VISCLAP", VISCLAP);
+
+        compute.SetFloat("collisionSphereRadius", collisionSphereRadius);
     }
 
     private void OnDestroy()
@@ -247,6 +270,7 @@ public class ComputeSPHManager : MonoBehaviour
         forceBuffer.Release();
         densityBuffer.Release();
         pressureBuffer.Release();
+        collisionSphereBuffer.Release();
     }
 
     public void OnDrawGizmos()
