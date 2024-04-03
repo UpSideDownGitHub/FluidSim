@@ -1,10 +1,15 @@
 using System.Collections.Generic;
+using System.IO;
 using Unity.Mathematics;
 using UnityEngine;
 public class ComputeSPHManager : MonoBehaviour
 {
     public bool justSpawn;
     public bool showValues;
+
+    [Header("Collision Balls")]
+    public Balls balls;
+    public string fileName;
 
     [Header("Simulation Values")]
     public Vector3 gravity = new(0f, -10f, 0f);
@@ -65,10 +70,22 @@ public class ComputeSPHManager : MonoBehaviour
     {
         get { return 40f / (Mathf.PI * Mathf.Pow(kernalRadius, 5f)); }
     }
-
+    public void LoadSavedBallData()
+    {
+        string path = Application.persistentDataPath + "/" + fileName;
+        if (File.Exists(path))
+        {
+            using (StreamReader reader = new StreamReader(path))
+            {
+                string json = reader.ReadToEnd();
+                balls = JsonUtility.FromJson<Balls>(json);
+            }
+        }
+    }
 
     void Start()
     {
+        LoadSavedBallData();
         SpawnParticles();
 
         positionBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
