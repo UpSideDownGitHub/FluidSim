@@ -45,6 +45,7 @@ public class SimulationManager : MonoBehaviour
     [Header("Simulation Management")]
     public ComputeSPHManager sphManager;
     public ParticleDisplay3D particleDisplay;
+    public UIManager uiManager;
     public SimulationState state = SimulationState.START;
 
     public void Start()
@@ -68,9 +69,15 @@ public class SimulationManager : MonoBehaviour
         collisionObjects[_previous].SetActive(val.isOn);
     }
 
+    public void InitParticleDisplay()
+    {
+        particleDisplay.Init(sphManager);
+    }
+
     public void StartPressed()
     {
         sphManager.StartSimulation(fileNames[_previous]);
+        InitParticleDisplay();
         state = SimulationState.RUNNING;
         startUI.SetActive(false);
         runningUI.SetActive(true);
@@ -81,6 +88,7 @@ public class SimulationManager : MonoBehaviour
         state = SimulationState.START;
         sphManager.DestroyCurrent();
         sphManager.StartSimulation(fileNames[_previous]);
+        InitParticleDisplay();
         state = SimulationState.RUNNING;
         startUI.SetActive(false);
         runningUI.SetActive(true);

@@ -1,6 +1,5 @@
 using System;
 using TMPro;
-
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,15 +21,16 @@ public struct SPHValues
 [Serializable]
 public struct ShaderValues
 {
-    public float thickness;
-    public Color color;
+    public float scale;
+    public float[] maxValues;
+    public int gradientResolution;
 }
-
 
 public class UIManager : MonoBehaviour
 {
     public ComputeSPHManager sphManager;
     public SimulationManager simulationManager;
+    public ParticleDisplay3D particleDisplay;
 
     [Header("UI Elements")]
     public TMP_InputField gravityXInput;
@@ -62,14 +62,15 @@ public class UIManager : MonoBehaviour
     public Button resetValuesButton;
 
     [Header("Material Settings")]
-    public TMP_Text shaderThicknessText;
-    public Slider shaderThicknessSlider;
+    public TMP_Text scaleText;
+    public Slider scaleSlider;
+    public TMP_Text maxValueText;
+    public Slider maxValueSlider;
+    public TMP_Text gradientResolutionText;
+    public Slider gradientResolutionSlider;
 
-    public TMP_Text shaderColorText;
-    public Slider shaderColorRSlider;
-    public Slider shaderColorGSlider;
-    public Slider shaderColorBSlider;
-    public Slider shaderColorASlider;
+    public TMP_Dropdown shadersDropdown;
+    public TMP_Dropdown colorMapsDropdown;
 
     public Button resetShaderButton;
 
@@ -181,31 +182,26 @@ public class UIManager : MonoBehaviour
         resetValuesButton.onClick.AddListener(() => resetToOrignalValues());
 
         // shader
-        //shaderThicknessSlider.minValue = minShader.thickness;
-        //shaderThicknessSlider.maxValue = maxShader.thickness;
-        //shaderThicknessSlider.value = orignalShader.thickness;
-        //shaderThicknessSlider.onValueChanged.AddListener((val) => shaderThicknessChanged(val));
-        //shaderThicknessText.text = _shaderRenderer.material.GetFloat("_Thickness").ToString();
+        scaleSlider.minValue = minShader.scale;
+        scaleSlider.maxValue = maxShader.scale;
+        scaleSlider.value = orignalShader.scale;
+        scaleText.text = orignalShader.scale.ToString();
+        scaleSlider.onValueChanged.AddListener((value) => OnScaleSliderChanged(value));
+        maxValueSlider.minValue = minShader.maxValues[particleDisplay.currentShaderID];
+        maxValueSlider.maxValue = maxShader.maxValues[particleDisplay.currentShaderID];
+        maxValueSlider.value = orignalShader.maxValues[particleDisplay.currentShaderID];
+        maxValueText.text = orignalShader.scale.ToString();
+        maxValueSlider.onValueChanged.AddListener((value) => OnMaxValueSliderChanged(value));
+        gradientResolutionSlider.minValue = minShader.gradientResolution;
+        gradientResolutionSlider.maxValue = maxShader.gradientResolution;
+        gradientResolutionSlider.value = orignalShader.gradientResolution;
+        gradientResolutionText.text = orignalShader.gradientResolution.ToString();
+        gradientResolutionSlider.onValueChanged.AddListener((value) => OnGradientResolutionChanged(value));
 
-        //shaderColorRSlider.minValue = minShader.color.r;
-        //shaderColorRSlider.maxValue = maxShader.color.r;
-        //shaderColorRSlider.value = orignalShader.color.r;
-        //shaderColorRSlider.onValueChanged.AddListener((val) => shaderColorRChanged(val));
-        //shaderColorGSlider.minValue = minShader.color.g;
-        //shaderColorGSlider.maxValue = maxShader.color.g;
-        //shaderColorGSlider.value = orignalShader.color.g;
-        //shaderColorGSlider.onValueChanged.AddListener((val) => shaderColorGChanged(val));
-        //shaderColorBSlider.minValue = minShader.color.b;
-        //shaderColorBSlider.maxValue = maxShader.color.b;
-        //shaderColorBSlider.value = orignalShader.color.b;
-        //shaderColorBSlider.onValueChanged.AddListener((val) => shaderColorBChanged(val));
-        //shaderColorASlider.minValue = minShader.color.a;
-        //shaderColorASlider.maxValue = maxShader.color.a;
-        //shaderColorASlider.value = orignalShader.color.a;
-        //shaderColorASlider.onValueChanged.AddListener((val) => shaderColorAChanged(val));
-        //shaderColorText.text = orignalShader.color.ToString();
+        shadersDropdown.onValueChanged.AddListener((value) => OnShadersDropDownChanged(value));
+        colorMapsDropdown.onValueChanged.AddListener((value) => OnColorMapsChanged(value));
 
-        //resetShaderButton.onClick.AddListener(() => ResetShaderValues());
+        resetShaderButton.onClick.AddListener(() => ResetShaderValues());
     }
 
     public void gravityXChanged(string val)
@@ -285,40 +281,46 @@ public class UIManager : MonoBehaviour
         simulationManager.StopSimulation();
     }
 
-    //public void shaderThicknessChanged(float val)
-    //{
-    //    _shaderRenderer.material.SetFloat("_Thickness", val);
-    //    shaderThicknessText.text = val.ToString();
-    //}
+    public void OnScaleSliderChanged(float val)
+    {
+        particleDisplay.scale = val;
+        scaleText.text = val.ToString();
+    }
 
-    //public void shaderColorRChanged(float val)
-    //{
-    //    Color col = _shaderRenderer.material.GetColor("_Color");
-    //    col.r = val;
-    //    _shaderRenderer.material.SetColor("_Color", col);
-    //    shaderColorText.text = col.ToString();
-    //}
-    //public void shaderColorGChanged(float val)
-    //{
-    //    Color col = _shaderRenderer.material.GetColor("_Color");
-    //    col.g = val;
-    //    _shaderRenderer.material.SetColor("_Color", col);
-    //    shaderColorText.text = col.ToString();
-    //}
-    //public void shaderColorBChanged(float val)
-    //{
-    //    Color col = _shaderRenderer.material.GetColor("_Color");
-    //    col.b = val;
-    //    _shaderRenderer.material.SetColor("_Color", col);
-    //    shaderColorText.text = col.ToString();
-    //}
-    //public void shaderColorAChanged(float val)
-    //{
-    //    Color col = _shaderRenderer.material.GetColor("_Color");
-    //    col.a = val;
-    //    _shaderRenderer.material.SetColor("_Color", col);
-    //    shaderColorText.text = col.ToString();
-    //}
+    public void OnMaxValueSliderChanged(float val)
+    {
+        particleDisplay.maxValue = val;
+        maxValueText.text = val.ToString();
+    }
+
+    public void OnGradientResolutionChanged(float val)
+    {
+        particleDisplay.gradientResolution = (int)val;
+        particleDisplay.ForceGradientUpdate();
+        gradientResolutionText.text = ((int)val).ToString();
+    }
+
+    public void OnShadersDropDownChanged(int val)
+    {
+        particleDisplay.Reset();
+        particleDisplay.SetNewShader(val);
+        simulationManager.InitParticleDisplay();
+        UpdateMaxValueSlider(val);
+    }
+
+    public void OnColorMapsChanged(int val)
+    {
+        particleDisplay.SetNewGrad(val);
+        particleDisplay.ForceGradientUpdate();
+    }
+
+    public void UpdateMaxValueSlider(int val)
+    {
+        maxValueSlider.minValue = minShader.maxValues[val];
+        maxValueSlider.maxValue = maxShader.maxValues[val];
+        maxValueSlider.value = orignalShader.maxValues[val];
+        maxValueText.text = orignalShader.maxValues[val].ToString();
+    }
 
     public void resetToOrignalValues()
     {
@@ -359,20 +361,17 @@ public class UIManager : MonoBehaviour
         collisionMassText.text = sphManager.collisionMass.ToString();
     }
 
-    //public void ResetShaderValues()
-    //{
-    //    // shader
-    //    _shaderRenderer.material.SetFloat("_Thickness", orignalShader.thickness);
-    //    shaderThicknessSlider.value = orignalShader.thickness;
-    //    shaderThicknessText.text = orignalShader.thickness.ToString();
-
-    //    _shaderRenderer.material.SetColor("_Color", orignalShader.color);
-    //    shaderColorRSlider.value = orignalShader.color.r;
-    //    shaderColorGSlider.value = orignalShader.color.g;
-    //    shaderColorBSlider.value = orignalShader.color.b;
-    //    shaderColorASlider.value = orignalShader.color.a;
-    //    shaderColorText.text = orignalShader.color.ToString();
-    //}
+    public void ResetShaderValues()
+    {
+        shadersDropdown.value = 0;
+        colorMapsDropdown.value = 0;
+        scaleSlider.value = orignalShader.scale;
+        scaleText.text = orignalShader.scale.ToString();
+        maxValueSlider.value = orignalShader.maxValues[particleDisplay.currentShaderID];
+        maxValueText.text = orignalShader.maxValues[particleDisplay.currentShaderID].ToString();
+        gradientResolutionSlider.value = orignalShader.gradientResolution;
+        gradientResolutionText.text = orignalShader.gradientResolution.ToString();
+    }
 
     public void SetOrignalValues()
     {
@@ -391,7 +390,7 @@ public class UIManager : MonoBehaviour
         orignal.collisionMass = sphManager.collisionMass;
 
         // shader
-        //orignalShader.thickness = _shaderRenderer.material.GetFloat("_Thickness");
-        //orignalShader.color = _shaderRenderer.material.GetColor("_Color");
+        orignalShader.scale = particleDisplay.scale;
+        orignalShader.gradientResolution = particleDisplay.gradientResolution;
     }
 }

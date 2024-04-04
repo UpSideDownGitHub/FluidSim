@@ -146,9 +146,6 @@ public class ComputeSPHManager : MonoBehaviour
 
         // Collision Number
         compute.SetInt("collisionSphereCount", balls.balls.Count);
-
-        // Drawing
-        particleDisplay.Init(this);
     }
 
     void SetBufferData()

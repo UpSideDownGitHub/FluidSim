@@ -1,4 +1,4 @@
-Shader "Instanced/Particle3D" {
+Shader "Instanced/VelocityShader" {
 	Properties { }
 	SubShader {
 		Tags {"Queue"="Geometry" }
@@ -13,9 +13,8 @@ Shader "Instanced/Particle3D" {
 			StructuredBuffer<float3> Velocities;
 			Texture2D<float4> ColourMap;
 			SamplerState linear_clamp_sampler;
-			float velocityMax;
+			float maxValue;
 			float scale;
-			float3 colour;
 
 			struct v2f
 			{
@@ -34,9 +33,8 @@ Shader "Instanced/Particle3D" {
 				o.pos = UnityObjectToClipPos(worldVertPos);
 
 				float speed = length(Velocities[instanceID]);
-				float speedT = saturate(speed / velocityMax);
-				float colT = speedT;
-				o.colour = ColourMap.SampleLevel(linear_clamp_sampler, float2(colT, 0.5), 0);
+				float speedT = saturate(speed / maxValue);
+				o.colour = ColourMap.SampleLevel(linear_clamp_sampler, float2(speedT, 0.5), 0);
 				return o;	
 			}
 

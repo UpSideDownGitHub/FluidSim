@@ -201,20 +201,4 @@ void CollisionDetection(uint3 id : SV_DispatchThreadID)
         }
     }
     positions[id.x] += timeStep * timeStep * (collisionForce / densities[id.x]);
-    /*
-                float3 xDir = positions[id.x] - collisionSpheres[i];
-            float3 normX = float3(xDir.x / 3, xDir.y / 3, xDir.z / 3);
-            float xdotv = dot(normX, velocities[id.x]);
-            float3 veloX = normX * xdotv;
-            float3 veloY = velocities[id.x] - veloX;
-            xDir *= -1;
-            float3 normX2 = float3(xDir.x / 3, xDir.y / 3, xDir.z / 3);
-            float3 statVeclocity = float3(0.0f, 0.0f, 0.0f);
-            float xdotv2 = dot(normX2, statVeclocity);
-            float3 veloX2 = normX2 * xdotv2;
-            
-            velocities[id.x] = ((veloX * (mass - collisionMass) / (mass + collisionMass))
-                + (veloX2 * (2 * collisionMass) / (mass + collisionMass)) + veloY) * timeStep;
-            positions[id.x] += timeStep * velocities[id.x];
-*/
 }
