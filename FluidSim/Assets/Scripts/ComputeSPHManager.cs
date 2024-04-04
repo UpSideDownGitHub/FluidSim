@@ -269,12 +269,16 @@ public class ComputeSPHManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        positionBuffer.Release();
-        velocityBuffer.Release();
-        forceBuffer.Release();
-        densityBuffer.Release();
-        pressureBuffer.Release();
-        collisionSphereBuffer.Release();
+        try
+        {
+            positionBuffer.Release();
+            velocityBuffer.Release();
+            forceBuffer.Release();
+            densityBuffer.Release();
+            pressureBuffer.Release();
+            collisionSphereBuffer.Release();
+        }
+        catch { /*they dont exist*/}
     }
 
     public void OnDrawGizmos()

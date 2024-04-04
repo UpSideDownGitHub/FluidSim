@@ -73,6 +73,10 @@ public class ParticleDisplay3D : MonoBehaviour
     }
     void OnDestroy()
     {
-        _buffer.Release();
+        try
+        {
+            _buffer.Release();
+        }
+        catch { /*they dont exist*/}
     }
 }
