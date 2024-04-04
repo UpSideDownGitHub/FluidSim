@@ -42,11 +42,9 @@ public class ParticleDisplay3D : MonoBehaviour
 
         if (currentShaderID == 0)
             _mat.SetBuffer("Velocities", sim.velocityBuffer);
-        else if (currentShaderID == 2)
+        else if (currentShaderID == 1)
             _mat.SetBuffer("Densities", sim.densityBuffer);
-        else if (currentShaderID == 3)
-            _mat.SetBuffer("Pressure", sim.pressureBuffer);
-        else if (currentShaderID == 4)
+        else if (currentShaderID == 2)
             _mat.SetBuffer("Collisions", sim.collisionSphereBuffer);
         // else Position Shader
 
