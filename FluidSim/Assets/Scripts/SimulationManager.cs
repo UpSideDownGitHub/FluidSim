@@ -15,16 +15,9 @@ public enum SimulationState
 public class SimulationManager : MonoBehaviour
 {
     /* TODO:
-     *  - Before Simulation
-     *      ##Selection Of Vehical##
-     *      ##Toggle Collisions##
-     *      ##Start Simulation##
-     *  - During Simulation
-     *      ¬Change Simulation Values During Simulation
-     *      ¬Change Particle View Values During Simulation
-     *      ¬Move Camera Around During Simulation
-     *      ¬Pause/Resume During Simulation
-     *      ¬Stop Simulation During Simulation
+     *  - Particle View options
+     *      options to change the view of the particles, velocity, density, viscosity, and then change the color ratio to make it show 
+     *      correctly
     */
 
     [Header("UI Management")]
