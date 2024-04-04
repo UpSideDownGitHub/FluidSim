@@ -12919,7 +12919,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shader: {fileID: 4800000, guid: 8cdfdc3e9989ce6439e6516318b499c7, type: 3}
-  scale: 1
+  scale: 50
+  mesh: {fileID: 4711208715938537054, guid: 1555d6d4ea08908488ca80911d3c8928, type: 3}
   col: {r: 0, g: 0.8915043, b: 1, a: 1}
   colourMap:
     serializedVersion: 2
@@ -12953,8 +12954,6 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   gradientResolution: 50
   velocityDisplayMax: 2000
-  meshResolution: 3
-  debug_MeshTriCount: 2
 --- !u!1 &598430949
 GameObject:
   m_ObjectHideFlags: 0

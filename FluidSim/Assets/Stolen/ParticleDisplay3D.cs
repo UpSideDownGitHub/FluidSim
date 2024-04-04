@@ -2,115 +2,77 @@ using UnityEngine;
 
 public class ParticleDisplay3D : MonoBehaviour
 {
-
     public Shader shader;
     public float scale;
-    Mesh mesh;
+    public Mesh mesh;
     public Color col;
-    Material mat;
-
-    ComputeBuffer argsBuffer;
-    Bounds bounds;
-
     public Gradient colourMap;
     public int gradientResolution;
     public float velocityDisplayMax;
-    Texture2D gradientTexture;
-    bool needsUpdate;
 
-    public int meshResolution;
-    public int debug_MeshTriCount;
+    // private
+    private Material _mat;
+    private ComputeBuffer _buffer;
+    private Bounds _bounds;
+    private Texture2D _gradientTexture;
+    private bool _updateGradient;
 
     public void Reset()
     {
-        argsBuffer.Release();
-        needsUpdate = true;
+        _buffer.Release();
+        _updateGradient = true;
     }
 
     public void Init(ComputeSPHManager sim)
     {
-        mat = new Material(shader);
-        mat.SetBuffer("Positions", sim.positionBuffer);
-        mat.SetBuffer("Velocities", sim.velocityBuffer);
+        _updateGradient = true;
+        _mat = new Material(shader);
+        _mat.SetBuffer("Positions", sim.positionBuffer);
+        _mat.SetBuffer("Velocities", sim.velocityBuffer);
 
-        mesh = SphereGenerator.GenerateSphereMesh(meshResolution);
-        debug_MeshTriCount = mesh.triangles.Length / 3;
         const int subMeshIndex = 0;
         uint[] args = new uint[5];
-        args[0] = (uint)mesh.GetIndexCount(subMeshIndex);
+        args[0] = mesh.GetIndexCount(subMeshIndex);
         args[1] = (uint)sim.positionBuffer.count;
-        args[2] = (uint)mesh.GetIndexStart(subMeshIndex);
-        args[3] = (uint)mesh.GetBaseVertex(subMeshIndex);
-        args[4] = 0; // offset
-        argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
-        argsBuffer.SetData(args);
-        bounds = new Bounds(Vector3.zero, Vector3.one * 10000);
+        args[2] = mesh.GetIndexStart(subMeshIndex);
+        args[3] = mesh.GetBaseVertex(subMeshIndex);
+        args[4] = 0;
+        _buffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
+        _buffer.SetData(args);
+        _bounds = new Bounds(Vector3.zero, Vector3.one * 10000);
     }
 
     public void UpdateDisplay()
     {
-        UpdateSettings();
-        Graphics.DrawMeshInstancedIndirect(mesh, 0, mat, bounds, argsBuffer);
+        if (_updateGradient)
+        {
+            _updateGradient = false;
+            _gradientTexture = TextureFromGradient(gradientResolution, colourMap);
+            _mat.SetTexture("ColourMap", _gradientTexture);
+        }
+        _mat.SetFloat("scale", scale);
+        _mat.SetColor("colour", col);
+        _mat.SetFloat("velocityMax", velocityDisplayMax);
+        Graphics.DrawMeshInstancedIndirect(mesh, 0, _mat, _bounds, _buffer);
     }
 
-    void UpdateSettings()
+    public Texture2D TextureFromGradient(int width, Gradient gradient)
     {
-        if (needsUpdate)
-        {
-            needsUpdate = false;
-            TextureFromGradient(ref gradientTexture, gradientResolution, colourMap);
-            mat.SetTexture("ColourMap", gradientTexture);
-        }
-        mat.SetFloat("scale", scale);
-        mat.SetColor("colour", col);
-        mat.SetFloat("velocityMax", velocityDisplayMax);
-
-        Vector3 s = transform.localScale;
-        transform.localScale = Vector3.one;
-        var localToWorld = transform.localToWorldMatrix;
-        transform.localScale = s;
-
-        mat.SetMatrix("localToWorld", localToWorld);
-    }
-
-    public void TextureFromGradient(ref Texture2D texture, int width, Gradient gradient, FilterMode filterMode = FilterMode.Bilinear)
-    {
-        if (texture == null)
-        {
-            texture = new Texture2D(width, 1);
-        }
-        else if (texture.width != width)
-        {
-            texture.Reinitialize(width, 1);
-        }
-        if (gradient == null)
-        {
-            gradient = new Gradient();
-            gradient.SetKeys(
-                new GradientColorKey[] { new GradientColorKey(Color.black, 0), new GradientColorKey(Color.black, 1) },
-                new GradientAlphaKey[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 1) }
-            );
-        }
+        Texture2D texture = new Texture2D(width, 1, TextureFormat.RGBA32, false);
         texture.wrapMode = TextureWrapMode.Clamp;
-        texture.filterMode = filterMode;
-
-        Color[] cols = new Color[width];
-        for (int i = 0; i < cols.Length; i++)
+        texture.filterMode = FilterMode.Bilinear;
+        Color32[] colors = new Color32[width];
+        for (int i = 0; i < width; i++)
         {
-            float t = i / (cols.Length - 1f);
-            cols[i] = gradient.Evaluate(t);
+            float t = i / (float)width;
+            colors[i] = gradient.Evaluate(t);
         }
-        texture.SetPixels(cols);
+        texture.SetPixels32(colors);
         texture.Apply();
+        return texture;
     }
-
-    private void OnValidate()
-    {
-        needsUpdate = true;
-    }
-
     void OnDestroy()
     {
-        argsBuffer.Release();
+        _buffer.Release();
     }
 }
