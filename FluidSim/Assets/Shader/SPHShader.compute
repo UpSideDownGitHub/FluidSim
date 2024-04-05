@@ -132,7 +132,44 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
 
     velocities[id.x] += timeStep * (forces[id.x] / densities[id.x]);
     forces[id.x] = 0;
-    positions[id.x] += timeStep * velocities[id.x];
+}
+
+bool SphereSphereIntersection(float3 pos1, float3 pos2)
+{
+    float3 dist = pos1 - pos2;
+    float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+    float sumRadius = kernalRadius + collisionSphereRadius;
+    if (length <= sumRadius)
+        return true;
+    return false;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void CollisionDetection(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numParticles)
+        return;
+
+    double3 newPosition = positions[id.x] + (timeStep * velocities[id.x]);
+    //positions[id.x] += timeStep * velocities[id.x];    
+    double3 collisionForce = 0;
+    double3 dir = 0;
+    for (int i = 0; i < collisionSphereCount; i++)
+    {
+        if (SphereSphereIntersection(newPosition, collisionSpheres[i]) && densities[id.x] != 0)
+        {
+            dir = collisionSpheres[i] - positions[id.x];
+            collisionForce += -dir * (mass / densities[id.x]) * collisionMass;   
+        }
+    }
+    if (length(collisionForce) < 0.1)
+        positions[id.x] = newPosition;
+    else
+    {
+        positions[id.x] += timeStep * timeStep * (collisionForce / densities[id.x]);
+        velocities[id.x] *= boundaryDamping * normalize(-dir);
+    }
+    
 
     if (positions[id.x].x - kernalRadius < 0.0f)
     {
@@ -158,47 +195,14 @@ void Intergrate(uint3 id : SV_DispatchThreadID)
     
     if (positions[id.x].z - kernalRadius < 0.0f)
     {
-        velocities[id.x] = float3(0,0,0);
+        velocities[id.x] = float3(0, 0, 0);
         positions[id.x].z = view.z - kernalRadius;
-        
-        
-        
     }
     if (positions[id.x].z + kernalRadius > view.z)
     {
         velocities[id.x].z *= boundaryDamping;
         positions[id.x].z = view.z - kernalRadius;
     }
-
-}
-
-bool SphereSphereIntersection(float3 pos1, float3 pos2)
-{
-    float3 dist = pos1 - pos2;
-    float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
-    float sumRadius = kernalRadius + collisionSphereRadius;
-    if (length <= sumRadius)
-        return true;
-    return false;
-}
-
-[numthreads(NumThreads, 1, 1)]
-void CollisionDetection(uint3 id : SV_DispatchThreadID)
-{
-    if (id.x >= numParticles)
-        return;
-
-    double3 collisionForce = 0;
-    for (int i = 0; i < collisionSphereCount; i++)
-    {
-        if (SphereSphereIntersection(positions[id.x], collisionSpheres[i]))
-        {
-            if (densities[id.x] != 0)
-            {
-                double3 dir = collisionSpheres[i] - positions[id.x];
-                collisionForce += -dir * (mass / densities[id.x]) * collisionMass;
-            }
-        }
-    }
-    positions[id.x] += timeStep * timeStep * (collisionForce / densities[id.x]);
+    
+    
 }
