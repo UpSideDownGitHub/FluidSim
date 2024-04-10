@@ -3,9 +3,15 @@ using System.IO;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+
+/// <summary>
+/// Manages the Smoothed-Particle Hydrodynamics (SPH) simulation.
+/// </summary>
 public class ComputeSPHManager : MonoBehaviour
 {
+    // Determines if particles should be spawned immediately upon start.
     public bool justSpawn;
+    // Determines if values should be displayed for debugging purposes.
     public bool showValues;
 
     [Header("Collision Balls")]
@@ -39,6 +45,7 @@ public class ComputeSPHManager : MonoBehaviour
     public ComputeBuffer pressureBuffer;
     public ComputeBuffer collisionSphereBuffer;
 
+    // Constants for kernel indices
     const int ComputeDensityKernel = 0;
     const int ComputeExternalKernel = 1;
     const int ComputePressureKernel = 2;
@@ -56,6 +63,7 @@ public class ComputeSPHManager : MonoBehaviour
     public List<float> particleDensity;
     public List<float> particlePressure;
 
+    // Smoothing Kernels
     public float POLY6
     {
         get { return 4f / (Mathf.PI * Mathf.Pow(kernalRadius, 8f)); }
@@ -68,11 +76,17 @@ public class ComputeSPHManager : MonoBehaviour
     {
         get { return 40f / (Mathf.PI * Mathf.Pow(kernalRadius, 5f)); }
     }
+
+    /// <summary>
+    /// Loads collision ball data from a saved file.
+    /// </summary>
     public void LoadSavedBallData(string fileName)
     {
+        // if the file is there
         string path = Application.persistentDataPath + "/" + fileName;
         if (File.Exists(path))
         {
+            // load all of the ball data
             using (StreamReader reader = new StreamReader(path))
             {
                 string json = reader.ReadToEnd();
@@ -81,6 +95,9 @@ public class ComputeSPHManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Destroys existing simulation data.
+    /// </summary>
     public void DestroyCurrent()
     {
         positionBuffer.Release();
@@ -94,18 +111,25 @@ public class ComputeSPHManager : MonoBehaviour
         particleDisplay.Reset();
     }
 
+    /// <summary>
+    /// Initializes the simulation with specified collision data.
+    /// </summary>
     public void StartSimulation(string collisionDataName)
     {
+        // load all of the collision data
         LoadSavedBallData(collisionDataName);
+        // spawn the particles
         SpawnParticles();
-
+        
+        // create the compute buffers
         positionBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
         velocityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
         forceBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
         densityBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
         pressureBuffer = new ComputeBuffer(numParticles, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float)));
         collisionSphereBuffer = new ComputeBuffer(balls.balls.Count, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float3)));
-
+        
+        // set the initial computer buffer data
         SetBufferData();
 
         // Compute Density Pressure Kernel
@@ -148,14 +172,19 @@ public class ComputeSPHManager : MonoBehaviour
         compute.SetInt("collisionSphereCount", balls.balls.Count);
     }
 
+    /// <summary>
+    /// Sets data for compute buffers based on particle and collision sphere information.
+    /// </summary>
     void SetBufferData()
     {
+        // lists of data
         List<float3> points = new();
         List<float3> velocities = new();
         List<float3> forces = new();
         List<float> densities = new();
         List<float> pressures = new();
         List<float3> collisionSpheres = new();
+        // fill the list with data
         for (int i = 0; i < particles.Count; i++)
         {
             points.Add(particles[i].pos);
@@ -168,12 +197,14 @@ public class ComputeSPHManager : MonoBehaviour
         {
             collisionSpheres.Add(balls.balls[i]);
         }
+        // convert to arrays
         float3[] allPoints = points.ToArray();
         float3[] allVelocities = velocities.ToArray();
         float3[] allForces = forces.ToArray();
         float[] allDensities = densities.ToArray();
         float[] allPressures = pressures.ToArray();
         float3[] allCollisionSpheres = collisionSpheres.ToArray();
+        // set buffer data
         positionBuffer.SetData(allPoints);
         velocityBuffer.SetData(allVelocities);
         forceBuffer.SetData(allForces);
@@ -182,16 +213,24 @@ public class ComputeSPHManager : MonoBehaviour
         collisionSphereBuffer.SetData(allCollisionSpheres);
     }
 
+    /// <summary>
+    /// Spawns particles within the simulation space.
+    /// </summary>
     public void SpawnParticles()
     {
+        // in range of the y values
         for (float y = kernalRadius; y < view.y - kernalRadius * 2f; y += kernalRadius)
         {
+            // inrange of the x values
             for (float x = view.x / 10; x <= (view.x * 9) / 10; x += kernalRadius)
             {
+                // in range for the z values
                 for (float z = view.z / 10; z <= (view.z * 9) / 10; z += kernalRadius)
                 {
+                    // can spawn another particle
                     if (particles.Count < initialParticles || justSpawn)
                     {
+                        // spawn particle
                         float jitter = UnityEngine.Random.value / 1;
                         ComputeFluidParticle particle = new ComputeFluidParticle(new float3(x + jitter, view.y - y, z + jitter));
                         particles.Add(particle);
@@ -204,7 +243,9 @@ public class ComputeSPHManager : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
+    /// <summary>
+    /// Updates the simulation (main manger)
+    /// </summary>
     public void UpdateSimulation()
     {
         UpdateSettings();
@@ -213,6 +254,9 @@ public class ComputeSPHManager : MonoBehaviour
             ShowValues();
     }
 
+    /// <summary>
+    /// Dispatches the kernels
+    /// </summary>
     public void Run()
     {
         // density
@@ -233,6 +277,10 @@ public class ComputeSPHManager : MonoBehaviour
         dispatchKernal(CollisionKernel);
     }
 
+    /// <summary>
+    /// Dispatches the kernal.
+    /// </summary>
+    /// <param name="kernal">The kernal.</param>
     public void dispatchKernal(int kernal)
     {
         uint x, y, z;
@@ -244,6 +292,9 @@ public class ComputeSPHManager : MonoBehaviour
         compute.Dispatch(kernal, numGroupsX, numGroupsY, numGroupsZ);
     }
 
+    /// <summary>
+    /// Updates the settings of the compute shader
+    /// </summary>
     public void UpdateSettings()
     {
         compute.SetVector("gravity", gravity);
@@ -262,10 +313,14 @@ public class ComputeSPHManager : MonoBehaviour
 
         compute.SetFloat("collisionSphereRadius", collisionSphereRadius);
         compute.SetFloat("collisionMass", collisionMass);
-    } 
+    }
 
+    /// <summary>
+    /// Called when [destroy].
+    /// </summary>
     private void OnDestroy()
     {
+        // try to realse the buffers
         try
         {
             positionBuffer.Release();
@@ -278,15 +333,23 @@ public class ComputeSPHManager : MonoBehaviour
         catch { /*they dont exist*/}
     }
 
+    /// <summary>
+    /// Called when [draw gizmos].
+    /// </summary>
     public void OnDrawGizmos()
     {
+        // draw the Bounds to the screen
         Gizmos.color = Color.green;
         var center = new Vector3(view.x / 2, view.y / 2, view.z / 2);
         Gizmos.DrawWireCube(center, view);
     }
 
+    /// <summary>
+    /// Shows the values for debugging purpose
+    /// </summary>
     public void ShowValues()
     {
+        // show positions
         particlePositions.Clear();
         float3[] positions = new float3[particles.Count];
         positionBuffer.GetData(positions);
@@ -295,6 +358,7 @@ public class ComputeSPHManager : MonoBehaviour
             particlePositions.Add(new Vector3(positions[i].x, positions[i].y, positions[i].z));
         }
 
+        // show velocities
         particleVelocity.Clear();
         float3[] velocity = new float3[particles.Count];
         velocityBuffer.GetData(velocity);
@@ -303,6 +367,7 @@ public class ComputeSPHManager : MonoBehaviour
             particleVelocity.Add(new Vector3(velocity[i].x, velocity[i].y, velocity[i].z));
         }
 
+        // show forces
         particleForces.Clear();
         float3[] forces = new float3[particles.Count];
         forceBuffer.GetData(forces);
@@ -311,6 +376,7 @@ public class ComputeSPHManager : MonoBehaviour
             particleForces.Add(new Vector3(forces[i].x, forces[i].y, forces[i].z));
         }
 
+        // show densities
         particleDensity.Clear();
         float[] densities = new float[particles.Count];
         densityBuffer.GetData(densities);
@@ -319,6 +385,7 @@ public class ComputeSPHManager : MonoBehaviour
             particleDensity.Add(densities[i]);
         }
 
+        // show pressures
         particlePressure.Clear();
         float[] pressures = new float[particles.Count];
         pressureBuffer.GetData(pressures);

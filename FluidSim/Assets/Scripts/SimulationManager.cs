@@ -5,6 +5,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Current State of the simulation
+/// </summary>
 public enum SimulationState
 {
     START,
@@ -12,14 +15,11 @@ public enum SimulationState
     PAUSED
 }
 
+/// <summary>
+/// Manages the overal simulation (when SPH runs and the high level menu interaction)
+/// </summary>
 public class SimulationManager : MonoBehaviour
 {
-    /* TODO:
-     *  - Particle View options
-     *      options to change the view of the particles, velocity, density, viscosity, and then change the color ratio to make it show 
-     *      correctly
-    */
-
     [Header("UI Management")]
     public GameObject startUI;
     public GameObject runningUI;
@@ -48,11 +48,18 @@ public class SimulationManager : MonoBehaviour
     public UIManager uiManager;
     public SimulationState state = SimulationState.START;
 
+    /// <summary>
+    /// Starts this instance.
+    /// </summary>
     public void Start()
     {
         mainObjects[_previous].SetActive(true);
     }
 
+    /// <summary>
+    /// Called when [drop down value changed].
+    /// </summary>
+    /// <param name="change">The change.</param>
     public void OnDropDownValueChanged(TMP_Dropdown change)
     {
         mainObjects[_previous].SetActive(false);
@@ -63,17 +70,27 @@ public class SimulationManager : MonoBehaviour
         _previous = change.value;
     }
 
+    /// <summary>
+    /// Called when [toggle value changed].
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void OnToggleValueChanged(Toggle val)
     {
         showCollisionShapes = val.isOn;
         collisionObjects[_previous].SetActive(val.isOn);
     }
 
+    /// <summary>
+    /// Initializes the particle display.
+    /// </summary>
     public void InitParticleDisplay()
     {
         particleDisplay.Init(sphManager);
     }
 
+    /// <summary>
+    /// Called when [start pressed].
+    /// </summary>
     public void StartPressed()
     {
         sphManager.StartSimulation(fileNames[_previous]);
@@ -83,6 +100,9 @@ public class SimulationManager : MonoBehaviour
         runningUI.SetActive(true);
     }
 
+    /// <summary>
+    /// Resets the system.
+    /// </summary>
     public void ResetSystem()
     {
         state = SimulationState.START;
@@ -94,6 +114,9 @@ public class SimulationManager : MonoBehaviour
         runningUI.SetActive(true);
     }
 
+    /// <summary>
+    /// Stops the simulation.
+    /// </summary>
     public void StopSimulation()
     {
         state = SimulationState.START;
@@ -102,8 +125,12 @@ public class SimulationManager : MonoBehaviour
         runningUI.SetActive(false);
     }
 
+    /// <summary>
+    /// Updates this instance.
+    /// </summary>
     public void Update()
     {
+        // change actions based on the current state of the simulation
         switch(state)
         {
             case SimulationState.START:

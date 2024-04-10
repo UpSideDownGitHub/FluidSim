@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Sim Values - for easy display
+/// </summary>
 [Serializable]
 public struct SPHValues
 {
@@ -18,6 +21,9 @@ public struct SPHValues
     public float collisionMass;
 }
 
+/// <summary>
+/// Shader values for easy UI
+/// </summary>
 [Serializable]
 public struct ShaderValues
 {
@@ -26,6 +32,9 @@ public struct ShaderValues
     public int gradientResolution;
 }
 
+/// <summary>
+/// manages the UI
+/// </summary>
 public class UIManager : MonoBehaviour
 {
     public ComputeSPHManager sphManager;
@@ -89,32 +98,47 @@ public class UIManager : MonoBehaviour
     public GameObject shaderMenu;
     public GameObject openShader;
 
+    /// <summary>
+    /// Opens the menu.
+    /// </summary>
     public void OpenMenu()
     {
         open.SetActive(false);
         menu.SetActive(true);
     }
+    /// <summary>
+    /// Closes the menu.
+    /// </summary>
     public void CloseMenu()
     {
         menu.SetActive(false);
         open.SetActive(true);
     }
+    /// <summary>
+    /// Opens the shader menu.
+    /// </summary>
     public void OpenShaderMenu()
     {
         shaderMenu.SetActive(true);
         openShader.SetActive(false);
     }
+    /// <summary>
+    /// Closes the shader menu.
+    /// </summary>
     public void CloseShaderMenu()
     {
         shaderMenu.SetActive(false);
         openShader.SetActive(true);
     }
 
+    /// <summary>
+    /// Called when [enable].
+    /// </summary>
     public void OnEnable()
     {
         SetOrignalValues();
 
-        // SPH
+        // SET ALL OF THE UI TO DEFAULT VALUES
         gravityXInput.onValueChanged.AddListener((val) => gravityXChanged(val));
         gravityXInput.text = sphManager.gravity.x.ToString();
         gravityYInput.onValueChanged.AddListener((val) => gravityYChanged(val));
@@ -181,7 +205,7 @@ public class UIManager : MonoBehaviour
         stopButton.onClick.AddListener(() => StopPressed());
         resetValuesButton.onClick.AddListener(() => resetToOrignalValues());
 
-        // shader
+        // shader UI
         scaleSlider.minValue = minShader.scale;
         scaleSlider.maxValue = maxShader.scale;
         scaleSlider.value = orignalShader.scale;
@@ -204,102 +228,172 @@ public class UIManager : MonoBehaviour
         resetShaderButton.onClick.AddListener(() => ResetShaderValues());
     }
 
+    /// <summary>
+    /// Gravities the x changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void gravityXChanged(string val)
     {
         sphManager.gravity.x = float.Parse(val);
         gravityXInput.text = sphManager.gravity.x.ToString();
     }
+    /// <summary>
+    /// Gravities the y changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void gravityYChanged(string val)
     {
         sphManager.gravity.y = float.Parse(val);
         gravityYInput.text = sphManager.gravity.y.ToString();
     }
+    /// <summary>
+    /// Gravities the z changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void gravityZChanged(string val)
     {
         sphManager.gravity.z = float.Parse(val);
         gravityZInput.text = sphManager.gravity.z.ToString();
 
     }
+    /// <summary>
+    /// Rests the desnity changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void restDesnityChanged(float val)
     {
         sphManager.restDensity = val;
         restDensityText.text = sphManager.restDensity.ToString();
     }
+    /// <summary>
+    /// Gases the constant changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void gasConstantChanged(float val)
     {
         sphManager.gasConstant = val;
         gasConstantText.text = sphManager.gasConstant.ToString();
     }
+    /// <summary>
+    /// Kernals the radius changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void kernalRadiusChanged(float val)
     {
         sphManager.kernalRadius = val;
         kernalRadiusText.text = sphManager.kernalRadius.ToString();
     }
+    /// <summary>
+    /// Masses the changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void massChanged(float val)
     {
         sphManager.mass = val;
         massText.text = sphManager.mass.ToString();
     }
+    /// <summary>
+    /// Viscosities the changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void viscosityChanged(float val)
     {
         sphManager.viscosityCount = val;
         viscosityText.text = sphManager.viscosityCount.ToString();
     }
+    /// <summary>
+    /// Times the step changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void timeStepChanged(float val)
     {
         sphManager.timeStep = val;
         timeStepText.text = sphManager.timeStep.ToString();
     }
+    /// <summary>
+    /// Boundaries the damping changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void boundaryDampingChanged(float val)
     {
         sphManager.boundaryDamping = val;
         boundaryDampingText.text = sphManager.boundaryDamping.ToString();
     }
+    /// <summary>
+    /// Collisions the sphere radius changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void collisionSphereRadiusChanged(float val)
     {
         sphManager.collisionSphereRadius = val;
         collisionSphereRadiusText.text = sphManager.collisionSphereRadius.ToString();
     }
+    /// <summary>
+    /// Collisions the mass changed.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void collisionMassChanged(float val)
     {
         sphManager.collisionMass = val;
         collisionMassText.text = sphManager.collisionMass.ToString();
     }
+    /// <summary>
+    /// Resets the pressed.
+    /// </summary>
     public void ResetPressed()
     {
         simulationManager.ResetSystem();
     }
+    /// <summary>
+    /// Pauses the pressed.
+    /// </summary>
     public void PausePressed()
     {
+        // toggle the pause state of the game
         if (simulationManager.state == SimulationState.RUNNING)
             simulationManager.state = SimulationState.PAUSED; 
         else
             simulationManager.state = SimulationState.RUNNING; 
     }
+    /// <summary>
+    /// Stops the pressed.
+    /// </summary>
     public void StopPressed()
     {
         simulationManager.StopSimulation();
     }
-
+    /// <summary>
+    /// Called when [scale slider changed].
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void OnScaleSliderChanged(float val)
     {
         particleDisplay.scale = val;
         scaleText.text = val.ToString();
     }
-
+    /// <summary>
+    /// Called when [maximum value slider changed].
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void OnMaxValueSliderChanged(float val)
     {
         particleDisplay.maxValue = val;
         maxValueText.text = val.ToString();
     }
-
+    /// <summary>
+    /// Called when [gradient resolution changed].
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void OnGradientResolutionChanged(float val)
     {
         particleDisplay.gradientResolution = (int)val;
         particleDisplay.ForceGradientUpdate();
         gradientResolutionText.text = ((int)val).ToString();
     }
-
+    /// <summary>
+    /// Called when [shaders drop down changed].
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void OnShadersDropDownChanged(int val)
     {
         particleDisplay.Reset();
@@ -307,13 +401,19 @@ public class UIManager : MonoBehaviour
         simulationManager.InitParticleDisplay();
         UpdateMaxValueSlider(val);
     }
-
+    /// <summary>
+    /// Called when [color maps changed].
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void OnColorMapsChanged(int val)
     {
         particleDisplay.SetNewGrad(val);
         particleDisplay.ForceGradientUpdate();
     }
-
+    /// <summary>
+    /// Updates the maximum value slider.
+    /// </summary>
+    /// <param name="val">The value.</param>
     public void UpdateMaxValueSlider(int val)
     {
         maxValueSlider.minValue = minShader.maxValues[val];
@@ -321,7 +421,9 @@ public class UIManager : MonoBehaviour
         maxValueSlider.value = orignalShader.maxValues[val];
         maxValueText.text = orignalShader.maxValues[val].ToString();
     }
-
+    /// <summary>
+    /// Resets to orignal values.
+    /// </summary>
     public void resetToOrignalValues()
     {
         // simulation
@@ -360,7 +462,9 @@ public class UIManager : MonoBehaviour
         collisionMassSlider.value = orignal.collisionMass;
         collisionMassText.text = sphManager.collisionMass.ToString();
     }
-
+    /// <summary>
+    /// Resets the shader values.
+    /// </summary>
     public void ResetShaderValues()
     {
         shadersDropdown.value = 0;
@@ -372,7 +476,9 @@ public class UIManager : MonoBehaviour
         gradientResolutionSlider.value = orignalShader.gradientResolution;
         gradientResolutionText.text = orignalShader.gradientResolution.ToString();
     }
-
+    /// <summary>
+    /// Sets the orignal values.
+    /// </summary>
     public void SetOrignalValues()
     {
         // simulation

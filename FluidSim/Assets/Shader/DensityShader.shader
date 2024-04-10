@@ -9,6 +9,7 @@ Shader "Instanced/DensityShader" {
 			#pragma target 4.5
 			#include "UnityCG.cginc"
 			
+			// varaibles
 			StructuredBuffer<float3> Positions;
 			StructuredBuffer<float3> Densities;
 			Texture2D<float4> ColourMap;
@@ -16,6 +17,7 @@ Shader "Instanced/DensityShader" {
 			float maxValue;
 			float scale;
 
+			// shader data
 			struct v2f
 			{
 				float4 pos : SV_POSITION;
@@ -24,21 +26,28 @@ Shader "Instanced/DensityShader" {
 				float3 normal : NORMAL;
 			};
 
+			// vertex shader
 			v2f vert (appdata_full v, uint instanceID : SV_InstanceID)
 			{
+				// set the position
 				float3 worldVertPos = mul(unity_ObjectToWorld, v.vertex * scale) + Positions[instanceID];
+				// set shader data 
 				v2f o;
 				o.uv = v.texcoord;
 				o.normal = v.normal;
 				o.pos = UnityObjectToClipPos(worldVertPos);
 
+				// caluclate the average Density
 				float averageDensity = Densities[instanceID] / maxValue;
+				// calcualte the color of the current pixel
 				o.colour = ColourMap.SampleLevel(linear_clamp_sampler, float2(averageDensity, 0.5), 0);
 				return o;	
 			}
 
+			// fragment shader
 			float4 frag (v2f i) : SV_Target
 			{
+				// set the color of the current pixel
 				return float4(i.colour, 1);
 			}
 
