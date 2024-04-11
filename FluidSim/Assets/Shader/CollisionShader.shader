@@ -16,6 +16,7 @@ Shader "Instanced/CollisionShader" {
 			SamplerState linear_clamp_sampler;
 			float maxValue;
 			float scale;
+			int collisionCount;
 
 			// shader data
 			struct v2f
@@ -37,9 +38,16 @@ Shader "Instanced/CollisionShader" {
 				o.normal = v.normal;
 				o.pos = UnityObjectToClipPos(worldVertPos);
 
+				// get the closest collisions point
+				float closest = 9999;
+				for	(int i = 0; i < collisionCount; i++)
+				{
+					float dist = distance(Collisions[i], Positions[instanceID]);	
+					if (dist < closest)
+						closest = dist;
+				}
 				// caluclate the average distance
-				float dist = distance(Collisions[instanceID], Positions[instanceID]);
-				float averageDist = dist / maxValue;
+				float averageDist = closest / maxValue;
 				// calcualte the color of the current pixel
 				o.colour = ColourMap.SampleLevel(linear_clamp_sampler, float2(averageDist, 0.5), 0);
 				return o;	

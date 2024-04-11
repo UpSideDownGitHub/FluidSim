@@ -56,7 +56,10 @@ public class ParticleDisplay3D : MonoBehaviour
         else if (currentShaderID == 1)
             _mat.SetBuffer("Densities", sim.densityBuffer);
         else if (currentShaderID == 2)
+        {
             _mat.SetBuffer("Collisions", sim.collisionSphereBuffer);
+            _mat.SetInt("collisionCount", sim.balls.balls.Count);
+        }
         // else Position Shader
 
         // create compute buffer to hold the position data (what needs to be drawn)
