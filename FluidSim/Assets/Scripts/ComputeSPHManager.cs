@@ -15,6 +15,8 @@ public class ComputeSPHManager : MonoBehaviour
     public bool showValues;
 
     [Header("Collision Balls")]
+    public ConvertBalls ballConverter;
+    public GameObject[] collisionParents;
     public Balls balls;
 
     [Header("Simulation Values")]

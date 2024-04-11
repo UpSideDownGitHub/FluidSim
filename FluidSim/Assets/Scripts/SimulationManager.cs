@@ -1,6 +1,8 @@
 using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -48,11 +50,24 @@ public class SimulationManager : MonoBehaviour
     public UIManager uiManager;
     public SimulationState state = SimulationState.START;
 
+    [Header("Collision Balls")]
+    public ConvertBalls ballConverter;
+
     /// <summary>
     /// Starts this instance.
     /// </summary>
     public void Start()
     {
+        for (int i = 0; i < collisionObjects.Length; i++)
+        {
+            string path = Application.persistentDataPath + "/" + fileNames[i];
+            if (!File.Exists(path))
+            {
+                ballConverter.ballsParent = collisionObjects[i].transform;
+                ballConverter.fileName = fileNames[i];
+                ballConverter.SaveBallData();
+            }
+        }
         mainObjects[_previous].SetActive(true);
     }
 

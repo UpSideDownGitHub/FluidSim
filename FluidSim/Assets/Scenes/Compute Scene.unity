@@ -13380,6 +13380,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   justSpawn: 0
   showValues: 1
+  ballConverter: {fileID: 0}
+  collisionParents: []
   gravity: {x: 0, y: -10, z: 0}
   restDensity: 200
   gasConstant: 2000
@@ -25898,8 +25900,9 @@ MonoBehaviour:
   showCollisionShapes: 0
   sphManager: {fileID: 598370520}
   particleDisplay: {fileID: 598370522}
-  uiManager: {fileID: 0}
+  uiManager: {fileID: 1041506634}
   state: 0
+  ballConverter: {fileID: 1638840178}
 --- !u!114 &1041506634
 MonoBehaviour:
   m_ObjectHideFlags: 0
