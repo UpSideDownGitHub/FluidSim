@@ -26,6 +26,8 @@ public class SimulationManager : MonoBehaviour
     public GameObject startUI;
     public GameObject runningUI;
 
+    [Header("Particles")]
+    public TMP_Text particleText;
 
     [Header("Vehical Selection")]
     /* Order:
@@ -86,6 +88,14 @@ public class SimulationManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Exits the application
+    /// </summary>
+    public void QuitPressed()
+    {
+        Application.Quit();
+    }
+
+    /// <summary>
     /// Called when [toggle value changed].
     /// </summary>
     /// <param name="val">The value.</param>
@@ -93,6 +103,16 @@ public class SimulationManager : MonoBehaviour
     {
         showCollisionShapes = val.isOn;
         collisionObjects[_previous].SetActive(val.isOn);
+    }
+
+    /// <summary>
+    /// changes the ammount of particles
+    /// </summary>
+    /// <param name="val"></param>
+    public void OnParticlesChanged(Scrollbar val)
+    {
+        sphManager.initialParticles = (int)val.value;
+        particleText.text = val.value.ToString();
     }
 
     /// <summary>
