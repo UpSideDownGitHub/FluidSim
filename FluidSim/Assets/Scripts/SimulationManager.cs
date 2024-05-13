@@ -109,7 +109,7 @@ public class SimulationManager : MonoBehaviour
     /// changes the ammount of particles
     /// </summary>
     /// <param name="val"></param>
-    public void OnParticlesChanged(Scrollbar val)
+    public void OnParticlesChanged(Slider val)
     {
         sphManager.initialParticles = (int)val.value;
         particleText.text = val.value.ToString();
