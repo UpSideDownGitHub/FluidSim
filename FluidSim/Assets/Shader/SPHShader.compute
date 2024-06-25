@@ -1,0 +1,238 @@
+#pragma kernel ComputeDensity
+#pragma kernel ComputeExternal
+#pragma kernel ComputePressure
+#pragma kernel ComputeViscosity
+#pragma kernel Intergrate
+#pragma kernel CollisionDetection
+
+static const int NumThreads = 64;
+static const float PI = 3.14159265f;
+
+//buffers
+RWStructuredBuffer<float3> positions;
+RWStructuredBuffer<float3> velocities;
+RWStructuredBuffer<float3> forces;
+RWStructuredBuffer<float> densities;
+RWStructuredBuffer<float> pressures;
+
+RWStructuredBuffer<float3> collisionSpheres;
+
+// variables
+const float3 gravity;
+const float restDensity;
+const float gasConstant;
+const float kernalRadius;
+const float mass;
+const float viscosityConst;
+const float timeStep;
+const float boundaryDamping;
+const float3 view;
+
+const float POLY6;
+const float SPIKYGRAD;
+const float VISCLAP;
+
+const float collisionSphereRadius;
+const uint collisionSphereCount;
+const float collisionMass;
+
+const uint numParticles;
+
+// reurn the square of the radius
+double squareRadius()
+{
+    return (double)kernalRadius * (double)kernalRadius;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void ComputeDensity(uint3 id : SV_DispatchThreadID)
+{
+    // if current is the current return
+    if (id.x >= numParticles)
+        return;
+
+    // loop through all of the particles
+    double tempValue = 0.001;
+    for (uint i = 0; i < numParticles; i++)
+    {
+        // calc the direction and square norm of the current particle
+        double3 dir = positions[i] - positions[id.x];
+        double squaredNorm = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
+
+        // close enough to use value
+        if (squaredNorm < squareRadius())
+        {
+            // add density (based on the equation)
+            tempValue += mass * POLY6 * pow(squareRadius() - squaredNorm, 3.0);
+        }
+    }
+    // set density to the calcualted value (sum of the densities from all of the paritcles)
+    densities[id.x] = (float)tempValue;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void ComputeExternal(uint3 id : SV_DispatchThreadID)
+{
+    // if current is the current return
+    if (id.x >= numParticles)
+        return;
+    // add gravity for force
+    double3 externalForce = gravity * (mass / densities[id.x]);
+    forces[id.x] += (float3)externalForce;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void ComputePressure(uint3 id : SV_DispatchThreadID)
+{
+    // if current is the current return
+    if (id.x >= numParticles)
+        return;
+
+    // calcualte the pressure based on the density
+    pressures[id.x] = gasConstant * (densities[id.x] - restDensity);
+
+    // loop through all of the particles
+    double3 forcePressure = double3(0, 0, 0);
+    for (uint i = 0; i < numParticles; i++)
+    {
+        if (id.x == i)
+            continue;
+
+        // calcualte the dir to the particle and then the norm of this direction
+        double3 dir = positions[i] - positions[id.x];
+        double norm = sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+        
+        // if within range 
+        if (norm < kernalRadius)
+        {
+            // force of the pressure (based on the equation)
+            forcePressure += -normalize(dir) * mass * 
+                ((pressures[id.x] + pressures[i]) / (2.0f * densities[i])) *
+                SPIKYGRAD * pow(kernalRadius - norm, 3.0f);
+        }
+    }
+    // set the force to the calcualted value (sum of all of the force from the other particles)
+    forces[id.x] += (float3)forcePressure;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void ComputeViscosity(uint3 id : SV_DispatchThreadID)
+{
+    // if current is the current return
+    if (id.x >= numParticles)
+        return;
+
+    double3 forceViscosity = double3(0, 0, 0);
+
+    // loop through all of the particles
+    for (uint i = 0; i < numParticles; i++)
+    {
+        if (id.x == i)
+            continue;
+
+        // calcualte the dir to the particle and then the norm of this direction
+        double3 dir = positions[i] - positions[id.x];
+        double norm = sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+
+        // if within range 
+        if (norm < kernalRadius)
+        {
+            // force of the viscosity (based on the equation)
+            forceViscosity += viscosityConst * mass * 
+                ((velocities[i] - velocities[id.x]) / densities[i]) * 
+                VISCLAP * (kernalRadius - norm);
+        }
+    }
+    // set the force to the calcualted value (sum of all of the force from the other particles)
+    forces[id.x] += (float3)forceViscosity;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void Intergrate(uint3 id : SV_DispatchThreadID)
+{
+    // if current is the current return
+    if (id.x >= numParticles)
+        return;
+
+    // turn the force into velocity then set the force back to 0
+    velocities[id.x] += timeStep * (forces[id.x] / densities[id.x]);
+    forces[id.x] = 0;
+}
+
+// the following function will return true if the 2 spheres intersect
+bool SphereSphereIntersection(float3 pos1, float3 pos2)
+{
+    float3 dist = pos1 - pos2;
+    float length = sqrt(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+    float sumRadius = kernalRadius + collisionSphereRadius;
+    if (length <= sumRadius)
+        return true;
+    return false;
+}
+
+[numthreads(NumThreads, 1, 1)]
+void CollisionDetection(uint3 id : SV_DispatchThreadID)
+{
+    // if current is the current return
+    if (id.x >= numParticles)
+        return;
+
+    double3 newPosition = positions[id.x] + (timeStep * velocities[id.x]);
+    //positions[id.x] += timeStep * velocities[id.x];    
+    double3 collisionForce = 0;
+    double3 dir = 0;
+    // loop through all of the collision spheres
+    for (int i = 0; i < collisionSphereCount; i++)
+    {
+        //  if there is a collision
+        if (SphereSphereIntersection(newPosition, collisionSpheres[i]) && densities[id.x] != 0)
+        {
+            // move the particle away from the sphere
+            dir = collisionSpheres[i] - positions[id.x];
+            collisionForce += -dir * (mass / densities[id.x]) * collisionMass;   
+        }
+    }
+    // if there was no collisions then updae the position normally
+    if (length(collisionForce) < 0.1)
+        positions[id.x] = newPosition;
+    else
+    {
+        // otherwise update the positions based on the collision
+        positions[id.x] += timeStep * timeStep * (collisionForce / densities[id.x]);
+        velocities[id.x] *= boundaryDamping * normalize(-dir);
+    }
+    
+    // BOUNDARY COLLISIONS (REMOVE FORCE AND STOP POSITION)
+    if (positions[id.x].x - kernalRadius < 0.0f)
+    {
+        velocities[id.x].x *= boundaryDamping;
+        positions[id.x].x = kernalRadius;
+    }
+    if (positions[id.x].x + kernalRadius > view.x)
+    {
+        velocities[id.x].x *= boundaryDamping;
+        positions[id.x].x = view.x - kernalRadius;
+    }
+
+    if (positions[id.x].y - kernalRadius < 0.0f)
+    {
+        velocities[id.x].y *= boundaryDamping;
+        positions[id.x].y = kernalRadius;
+    }
+    if (positions[id.x].y + kernalRadius > view.y)
+    {
+        velocities[id.x].y *= boundaryDamping;
+        positions[id.x].y = view.y - kernalRadius;
+    }
+    
+    if (positions[id.x].z - kernalRadius < 0.0f)
+    {
+        velocities[id.x] = float3(0, 0, 0);
+        positions[id.x].z = view.z - kernalRadius;
+    }
+    if (positions[id.x].z + kernalRadius > view.z)
+    {
+        velocities[id.x].z *= boundaryDamping;
+        positions[id.x].z = view.z - kernalRadius;
+    }
+}
